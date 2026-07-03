@@ -53,6 +53,7 @@ func NewCohereVectorizer(ctx context.Context, cfg CohereConfig) (*CohereVectoriz
 	if cfg.APIKey == "" {
 		cfg.APIKey = os.Getenv("COHERE_API_KEY")
 	}
+	cfg.APIKey = strings.TrimSpace(cfg.APIKey)
 	if cfg.APIKey == "" {
 		return nil, fmt.Errorf("missing Cohere API key: provide CohereConfig.APIKey or set COHERE_API_KEY")
 	}

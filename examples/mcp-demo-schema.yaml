@@ -1,0 +1,30 @@
+# Schema for the MCP server demo (pairs with mcp-config.yaml).
+# Dims match OpenAI text-embedding-3-small (1536).
+# Create with: rvl index create -s examples/mcp-demo-schema.yaml
+
+version: '0.1.0'
+
+index:
+    name: movies
+    prefix: movie
+    key_separator: ':'
+    storage_type: hash
+
+fields:
+    - name: title
+      type: text
+    - name: description
+      type: text
+    - name: genre
+      type: tag
+    - name: rating
+      type: numeric
+      attrs:
+        sortable: true
+    - name: embedding
+      type: vector
+      attrs:
+        algorithm: hnsw
+        dims: 1536
+        distance_metric: cosine
+        datatype: float32

@@ -47,6 +47,9 @@ func NewOpenAIVectorizer(ctx context.Context, cfg OpenAIConfig) (*OpenAIVectoriz
 	if cfg.APIKey == "" {
 		cfg.APIKey = os.Getenv("OPENAI_API_KEY")
 	}
+	// stray whitespace/newlines (common in copy-pasted keys) would produce
+	// an invalid Authorization header
+	cfg.APIKey = strings.TrimSpace(cfg.APIKey)
 	if cfg.APIKey == "" {
 		return nil, fmt.Errorf("OpenAI API key is required: provide OpenAIConfig.APIKey or set OPENAI_API_KEY")
 	}
@@ -165,6 +168,7 @@ func NewAzureOpenAIVectorizer(ctx context.Context, cfg AzureOpenAIConfig) (*Azur
 	if cfg.APIKey == "" {
 		cfg.APIKey = os.Getenv("AZURE_OPENAI_API_KEY")
 	}
+	cfg.APIKey = strings.TrimSpace(cfg.APIKey)
 	if cfg.APIKey == "" {
 		return nil, fmt.Errorf("missing Azure OpenAI API key: provide AzureOpenAIConfig.APIKey or set AZURE_OPENAI_API_KEY")
 	}

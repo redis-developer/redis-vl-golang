@@ -49,6 +49,7 @@ func newHubClient(cfg Config) (*hubClient, error) {
 	if token == "" {
 		token = os.Getenv("HF_TOKEN")
 	}
+	token = strings.TrimSpace(token)
 	cacheDir := cfg.CacheDir
 	if cacheDir == "" {
 		base, err := os.UserCacheDir()

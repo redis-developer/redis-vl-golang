@@ -69,6 +69,7 @@ func NewLangCache(cfg LangCacheConfig) (*LangCache, error) {
 	if cfg.APIKey == "" {
 		cfg.APIKey = os.Getenv("LANGCACHE_API_KEY")
 	}
+	cfg.APIKey = strings.TrimSpace(cfg.APIKey)
 	if cfg.APIKey == "" {
 		return nil, fmt.Errorf("langcache: API key is required: provide LangCacheConfig.APIKey or set LANGCACHE_API_KEY")
 	}

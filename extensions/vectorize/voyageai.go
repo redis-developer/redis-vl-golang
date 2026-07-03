@@ -51,6 +51,7 @@ func NewVoyageAIVectorizer(ctx context.Context, cfg VoyageAIConfig) (*VoyageAIVe
 	if cfg.APIKey == "" {
 		cfg.APIKey = os.Getenv("VOYAGE_API_KEY")
 	}
+	cfg.APIKey = strings.TrimSpace(cfg.APIKey)
 	if cfg.APIKey == "" {
 		return nil, fmt.Errorf("VoyageAI API key is required: provide VoyageAIConfig.APIKey or set VOYAGE_API_KEY")
 	}

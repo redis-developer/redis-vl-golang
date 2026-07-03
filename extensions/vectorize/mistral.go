@@ -46,6 +46,7 @@ func NewMistralVectorizer(ctx context.Context, cfg MistralConfig) (*MistralVecto
 	if cfg.APIKey == "" {
 		cfg.APIKey = os.Getenv("MISTRAL_API_KEY")
 	}
+	cfg.APIKey = strings.TrimSpace(cfg.APIKey)
 	if cfg.APIKey == "" {
 		return nil, fmt.Errorf("missing Mistral API key: provide MistralConfig.APIKey or set MISTRAL_API_KEY")
 	}
