@@ -5,10 +5,16 @@ REDIS_URL ?= redis://localhost:6379
 # or missing pip shims on PATH.
 PYTHON ?= $(shell command -v python3 >/dev/null 2>&1 && echo python3 || echo python)
 
-.PHONY: deps check test test-integration fmt vet lint lint-hf build-rvl work deps-hf vet-hf test-hf test-hf-live docs-deps docs-build docs-serve bench-go bench-py bench-py-deps
+.PHONY: deps check test test-integration fmt vet lint lint-hf build-rvl release-snapshot work deps-hf vet-hf test-hf test-hf-live docs-deps docs-build docs-serve bench-go bench-py bench-py-deps
 
 build-rvl:
 	go build -o bin/rvl ./cmd/rvl
+
+# Local dry run of the release pipeline (requires goreleaser:
+# brew install goreleaser). Builds all platform binaries into dist/
+# without publishing anything.
+release-snapshot:
+	goreleaser release --snapshot --clean
 
 lint:
 	golangci-lint run

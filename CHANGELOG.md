@@ -9,6 +9,17 @@ Release tags cover both Go modules in this repository: the core module
 
 ## [Unreleased]
 
+### Added
+
+- GoReleaser pipeline: `v*` release tags now attach prebuilt `rvl` binaries
+  (macOS/Linux/Windows, amd64+arm64) to the GitHub Release
+- API keys and tokens are trimmed of stray whitespace (copy-paste safety)
+
+### Changed
+
+- MCP example config now returns document metadata fields from
+  `search-records` by default
+
 ## [0.1.0] - 2026-07-03
 
 The first release of RedisVL for Golang, ported from

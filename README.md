@@ -489,8 +489,20 @@ match, err := sr.Route(ctx, "Hi, good morning")
 
 Create, destroy, and manage Redis index configurations from a purpose-built CLI interface: `rvl`.
 
+Install it any of three ways:
+
 ```bash
-$ go build -o bin/rvl ./cmd/rvl   # or: make build-rvl
+# Prebuilt binary (no Go required): download for your platform from
+# https://github.com/redis-developer/redis-vl-golang/releases
+
+# With the Go toolchain:
+go install github.com/redis-developer/redis-vl-golang/cmd/rvl@latest
+
+# From a checkout:
+make build-rvl   # builds bin/rvl
+```
+
+```bash
 $ rvl --help
 
 rvl - RedisVL command line tool

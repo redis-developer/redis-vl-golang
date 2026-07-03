@@ -1,0 +1,61 @@
+# GoReleaser configuration for the rvl CLI.
+# Runs from .github/workflows/release.yml on every v* tag push, attaching
+# cross-compiled binaries to the GitHub Release.
+# Local dry run: goreleaser release --snapshot --clean
+version: 2
+
+project_name: rvl
+
+builds:
+  - id: rvl
+    main: ./cmd/rvl
+    binary: rvl
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - id: rvl
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    files:
+      - LICENSE
+      - README.md
+      - CHANGELOG.md
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs"
+      - "^ci"
+      - "^test"
+
+release:
+  # Attaches to the existing GitHub Release for the tag, or creates one.
+  mode: keep-existing
+  footer: |
+    ## Install
+
+    Download the archive for your platform above, or:
+
+    ```
+    go install github.com/redis-developer/redis-vl-golang/cmd/rvl@{{ .Tag }}
+    ```

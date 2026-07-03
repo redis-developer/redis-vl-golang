@@ -105,7 +105,13 @@ git tag extensions/vectorize/hf/vX.Y.Z
 git push origin extensions/vectorize/hf/vX.Y.Z
 ```
 
-Also keep `Version` in `version.go` in sync with the release tag.
+Also keep `Version` in `version.go` in sync with the release tag, and add
+a CHANGELOG.md entry for the release.
+
+Pushing the core `vX.Y.Z` tag also triggers the Release workflow
+(GoReleaser), which cross-compiles the `rvl` CLI for macOS, Linux, and
+Windows and attaches the binaries to the GitHub Release. Test the
+pipeline locally with `make release-snapshot` (requires goreleaser).
 
 ## Code Quality and Testing
 
