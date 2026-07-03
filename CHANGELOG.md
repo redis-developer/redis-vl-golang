@@ -9,16 +9,24 @@ Release tags cover both Go modules in this repository: the core module
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-07-03
+
 ### Added
 
 - GoReleaser pipeline: `v*` release tags now attach prebuilt `rvl` binaries
   (macOS/Linux/Windows, amd64+arm64) to the GitHub Release
 - API keys and tokens are trimmed of stray whitespace (copy-paste safety)
+- Doc comments on all exported constant groups (visible on pkg.go.dev)
+- Repository automation: golangci-lint in CI, Dependabot, coverage
+  reporting, issue/PR templates, SECURITY.md
+- Antora documentation site published to GitHub Pages
 
 ### Changed
 
 - MCP example config now returns document metadata fields from
   `search-records` by default
+- Error strings normalized to Go conventions (lowercase first word)
+- Dependency bumps via Dependabot (go-redis, workflow actions, Antora)
 
 ## [0.1.0] - 2026-07-03
 
@@ -52,5 +60,6 @@ The first release of RedisVL for Golang, ported from
 - Go-vs-Python benchmark harness (`benchmarks/`)
 - Antora documentation site published to GitHub Pages
 
-[Unreleased]: https://github.com/redis-developer/redis-vl-golang/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/redis-developer/redis-vl-golang/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/redis-developer/redis-vl-golang/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/redis-developer/redis-vl-golang/releases/tag/v0.1.0
