@@ -5,7 +5,7 @@ REDIS_URL ?= redis://localhost:6379
 # or missing pip shims on PATH.
 PYTHON ?= $(shell command -v python3 >/dev/null 2>&1 && echo python3 || echo python)
 
-.PHONY: deps check test test-integration fmt vet lint build-rvl deps-hf vet-hf test-hf test-hf-live bench-go bench-py bench-py-deps
+.PHONY: deps check test test-integration fmt vet lint build-rvl work deps-hf vet-hf test-hf test-hf-live bench-go bench-py bench-py-deps
 
 build-rvl:
 	go build -o bin/rvl ./cmd/rvl
@@ -37,6 +37,15 @@ check: fmt vet test
 
 # --- extensions/vectorize/hf is a separate module (cgo / ONNX Runtime) ---
 
+# Creates a Go workspace (gitignored) so the hf module builds against the
+# core module from this checkout instead of the released version. Run this
+# once before working on both modules together.
+work:
+	@test -f go.work || go work init . ./extensions/vectorize/hf
+	@echo "go.work ready"
+
+# Note: `go mod tidy` resolves the released core module version, so it
+# needs the corresponding tag to exist on GitHub.
 deps-hf:
 	cd extensions/vectorize/hf && go mod tidy
 

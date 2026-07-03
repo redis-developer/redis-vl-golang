@@ -60,6 +60,8 @@ We provide a Makefile to streamline common development tasks. Here are the avail
 | `make test-integration-external` | Runs integration tests against an external Redis (`REDIS_URL`) |
 | `make build-rvl` | Builds the `rvl` CLI binary into `bin/` |
 | `make check` | Runs formatting, vet, and tests |
+| `make work` | Creates a Go workspace linking the core and `hf` modules for local development |
+| `make vet-hf` / `make test-hf` | Vet / test the `extensions/vectorize/hf` module |
 
 **Quick Start Example:**
 ```bash
@@ -69,6 +71,41 @@ make deps
 # Run linting and tests (Docker running for integration coverage)
 make check
 ```
+
+### Working across modules
+
+This repository contains two Go modules: the core library (repository
+root) and `extensions/vectorize/hf` (separate because it uses cgo / ONNX
+Runtime). The hf module depends on the core module *by released version*,
+so to develop both against the same checkout, create a workspace first:
+
+```bash
+make work        # creates a gitignored go.work
+make test-hf
+```
+
+CI does the same, so cross-module changes are always tested together.
+
+### Releasing
+
+The core module is tagged first — the hf module's `go.mod` references the
+core version by tag, and Go must be able to resolve that tag (even in
+workspace mode) before anything depending on it builds:
+
+```bash
+# 1. tag and push the core module
+git tag vX.Y.Z && git push origin vX.Y.Z
+
+# 2. bump the core requirement in extensions/vectorize/hf/go.mod to vX.Y.Z,
+#    validate (GOPRIVATE skips proxy caching lag), commit, push
+GOPRIVATE=github.com/redis-developer/redis-vl-golang make check test-hf
+
+# 3. tag and push the hf module on that commit
+git tag extensions/vectorize/hf/vX.Y.Z
+git push origin extensions/vectorize/hf/vX.Y.Z
+```
+
+Also keep `Version` in `version.go` in sync with the release tag.
 
 ## Code Quality and Testing
 

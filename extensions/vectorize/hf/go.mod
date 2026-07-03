@@ -2,8 +2,13 @@ module github.com/redis-developer/redis-vl-golang/extensions/vectorize/hf
 
 go 1.25.0
 
+// Local development note: this module depends on the core module in this
+// repository by released version. To develop both together, create a Go
+// workspace from the repository root (gitignored):
+//
+//	make work    # go work init . ./extensions/vectorize/hf
 require (
-	github.com/redis-developer/redis-vl-golang v0.0.0
+	github.com/redis-developer/redis-vl-golang v0.1.0
 	github.com/sugarme/tokenizer v0.3.1-0.20251127070628-8dac234bfe56
 	github.com/yalue/onnxruntime_go v1.31.0
 )
@@ -18,10 +23,3 @@ require (
 	golang.org/x/sync v0.14.0 // indirect
 	golang.org/x/text v0.25.0 // indirect
 )
-
-// The hf provider lives in the same repository as the core module. Until
-// both modules are published with release tags, resolve the core module
-// locally. When tagging a release, tag both the root module (vX.Y.Z) and
-// this one (extensions/vectorize/hf/vX.Y.Z), then update the require above
-// and drop this replace.
-replace github.com/redis-developer/redis-vl-golang => ../../..

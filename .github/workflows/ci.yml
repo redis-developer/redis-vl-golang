@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  core:
+    name: Core module
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.x"
+
+      - name: Check formatting
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "gofmt needs to be run on:" && echo "$unformatted"
+            exit 1
+          fi
+
+      - name: Vet
+        run: go vet ./...
+
+      # Includes the integration suite: internal/redistest starts a
+      # redis:8.8.0 testcontainer automatically (Docker is preinstalled
+      # on ubuntu-latest runners).
+      - name: Test (unit + integration)
+        run: go test ./...
+
+  hf:
+    name: HF module (cgo)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.x"
+          cache-dependency-path: |
+            go.sum
+            extensions/vectorize/hf/go.sum
+
+      # Test the hf module against the core module from this checkout
+      # (not the released version) so cross-module changes are validated
+      # together.
+      - name: Set up multi-module workspace
+        run: go work init . ./extensions/vectorize/hf
+
+      - name: Vet
+        working-directory: extensions/vectorize/hf
+        run: go vet ./...
+
+      # Unit tests only: live tests (model download + onnxruntime shared
+      # library) are gated behind RUN_HF_LIVE_TESTS and skip here.
+      - name: Test
+        working-directory: extensions/vectorize/hf
+        run: go test ./...
