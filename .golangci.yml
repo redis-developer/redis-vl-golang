@@ -1,0 +1,30 @@
+version: "2"
+
+linters:
+  # standard set includes errcheck, govet, ineffassign, staticcheck, unused
+  default: standard
+  enable:
+    - misspell
+    - revive
+  settings:
+    errcheck:
+      exclude-functions:
+        # TTL refreshes and pipeline queuing are intentionally fire-and-forget
+        - (github.com/redis/go-redis/v9.UniversalClient).Expire
+        - (github.com/redis/go-redis/v9.Pipeliner).Expire
+    revive:
+      rules:
+        - name: exported
+        - name: error-strings
+          # provider names (OpenAI, Cohere...) legitimately start error strings
+          disabled: true
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters:
+          - errcheck
+
+formatters:
+  enable:
+    - gofmt
+    - goimports

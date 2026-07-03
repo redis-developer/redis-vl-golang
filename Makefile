@@ -1,0 +1,72 @@
+REDIS_URL ?= redis://localhost:6379
+
+# Prefer `python3` (present on all modern systems), fall back to `python`.
+# pip is always invoked through the interpreter (`-m pip`) to avoid broken
+# or missing pip shims on PATH.
+PYTHON ?= $(shell command -v python3 >/dev/null 2>&1 && echo python3 || echo python)
+
+.PHONY: deps check test test-integration fmt vet lint build-rvl deps-hf vet-hf test-hf test-hf-live bench-go bench-py bench-py-deps
+
+build-rvl:
+	go build -o bin/rvl ./cmd/rvl
+
+lint:
+	golangci-lint run
+
+deps:
+	go mod tidy
+
+fmt:
+	gofmt -w .
+
+vet:
+	go vet ./...
+
+test:
+	go test ./...
+
+# Integration tests start a Redis 8 testcontainer automatically when
+# REDIS_URL is not set (requires Docker).
+test-integration:
+	go test -run Integration ./...
+
+test-integration-external:
+	REDIS_URL=$(REDIS_URL) go test -run Integration ./...
+
+check: fmt vet test
+
+# --- extensions/vectorize/hf is a separate module (cgo / ONNX Runtime) ---
+
+deps-hf:
+	cd extensions/vectorize/hf && go mod tidy
+
+vet-hf:
+	cd extensions/vectorize/hf && go vet ./...
+
+test-hf:
+	cd extensions/vectorize/hf && go test ./...
+
+# Downloads all-MiniLM-L6-v2 (~90MB, cached) and runs real inference.
+# Requires the onnxruntime shared library; set ONNXRUNTIME_LIB_PATH.
+test-hf-live:
+	cd extensions/vectorize/hf && RUN_HF_LIVE_TESTS=1 go test -run TestLive -v ./...
+
+# --- benchmarks (see benchmarks/README.md) ---
+
+bench-go:
+	go run ./benchmarks/gobench
+
+# Requires the redisvl Python package in the active environment; run
+# `make bench-py-deps` (or pip/pip3 install redisvl) once first.
+bench-py:
+	@if [ -x benchmarks/pybench/.venv/bin/python ]; then \
+		benchmarks/pybench/.venv/bin/python benchmarks/pybench/bench.py; \
+	else \
+		$(PYTHON) benchmarks/pybench/bench.py; \
+	fi
+
+# Installs redisvl into a local virtualenv (benchmarks/pybench/.venv) so it
+# works on PEP 668 externally-managed Pythons (Homebrew, Debian, ...).
+bench-py-deps:
+	$(PYTHON) -m venv benchmarks/pybench/.venv
+	benchmarks/pybench/.venv/bin/python -m pip install --upgrade pip redisvl

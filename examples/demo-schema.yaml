@@ -1,0 +1,28 @@
+version: '0.1.0'
+
+index:
+    name: movies
+    prefix: movie
+    key_separator: ':'
+    storage_type: hash
+
+fields:
+    - name: title
+      type: text
+    - name: genre
+      type: tag
+    - name: year
+      type: numeric
+      attrs:
+        sortable: true
+    - name: rating
+      type: numeric
+      attrs:
+        sortable: true
+    - name: embedding
+      type: vector
+      attrs:
+        algorithm: flat
+        dims: 4
+        distance_metric: cosine
+        datatype: float32

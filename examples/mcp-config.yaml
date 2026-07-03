@@ -1,0 +1,30 @@
+# Example RedisVL MCP server configuration.
+# Run with: rvl mcp --config examples/mcp-config.yaml
+
+server:
+  redis_url: redis://localhost:6379
+
+index:
+  # Name of an existing Redis search index to expose
+  redis_name: movies
+  # Vectorizer used for query embedding and upsert embedding.
+  # Classes: openai, azure_openai, cohere, mistral, voyageai, ollama.
+  # API keys come from the standard environment variables.
+  vectorizer:
+    class: openai
+    model: text-embedding-3-small
+
+runtime:
+  # Vector field of the index (required when a vectorizer is set)
+  vector_field_name: embedding
+  # Record field embedded during upsert
+  default_embed_text_field: description
+  # Optional: restrict fields returned by search-records
+  # return_fields: [title, genre, rating]
+  default_limit: 10
+  max_limit: 100
+  max_upsert_records: 64
+  skip_embedding_if_present: true
+
+# Disable the upsert tool entirely (can also pass --read-only)
+read_only: false
