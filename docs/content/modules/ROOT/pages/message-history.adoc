@@ -1,0 +1,170 @@
+= Message History
+
+[.lead]
+Give LLM applications conversational memory. The `extensions/history` package stores chat messages in Redis and retrieves them by recency with `MessageHistory`, or by semantic relevance to the current prompt with `SemanticMessageHistory` — a port of the Python library's `message_history` extension.
+
+== The Message type
+
+Both history types work with the same `Message` struct:
+
+[source,go]
+----
+import "github.com/redis-developer/redis-vl-golang/extensions/history"
+
+msg := history.Message{
+    Role:     "user",              // required
+    Content:  "hello, how are you?", // the message text
+    Metadata: map[string]any{"model": "gpt-4"}, // optional, JSON-serialized
+    // Also available: EntryID, SessionTag, Timestamp, ToolCallID
+}
+----
+
+Valid roles are `user`, `assistant`, `system`, and `tool`; `llm` is also accepted for backward compatibility with the Python library. `Timestamp` and `EntryID` are filled in automatically when left zero.
+
+== MessageHistory (recency-based)
+
+`MessageHistory` stores messages timestamped for sequential retrieval.
+
+[source,go]
+----
+h, err := history.NewMessageHistory(ctx, client, "student tutor")
+----
+
+`MessageHistoryOptions` accepts:
+
+* `SessionTag` — links entries to a conversation session (default: a new ULID).
+* `Prefix` — Redis key prefix (default: the history name).
+
+=== Adding messages
+
+[source,go]
+----
+err = h.AddMessage(ctx, history.Message{
+    Role:    "system",
+    Content: "You are a helpful geography tutor.",
+})
+
+err = h.AddMessages(ctx, []history.Message{
+    {Role: "user", Content: "What is the capital of France?"},
+    {Role: "llm", Content: "The capital is Paris, France."},
+})
+
+// convenience: store a prompt/response exchange as "user" + "llm" messages
+err = h.Store(ctx, "What is the capital of Spain?", "The capital is Madrid, Spain.")
+----
+
+Every add method takes an optional trailing `sessionTag` string that overrides the instance default, so one history instance can serve multiple sessions:
+
+[source,go]
+----
+err = h.AddMessage(ctx, msg, "session-123")
+----
+
+=== Retrieving messages
+
+`GetRecent` returns the most recent messages in chronological order:
+
+[source,go]
+----
+recent, err := h.GetRecent(ctx, history.GetRecentOptions{
+    TopK:  3,                        // default 5
+    Roles: []string{"user", "llm"},  // optional role filter
+    // SessionTag: "session-123",    // optional session override
+})
+----
+
+Other accessors:
+
+* `Messages(ctx)` — the full session history in chronological order.
+* `Count(ctx, sessionTag...)` — number of messages in the session.
+* `SessionTag()` — the instance's default session tag.
+* `Index()` — the underlying `SearchIndex`.
+
+=== Removing messages
+
+[source,go]
+----
+err = h.Drop(ctx, entryID) // remove one message; "" removes the most recent
+err = h.Clear(ctx)         // remove all messages, keep the index
+err = h.Delete(ctx)        // remove all messages and the index
+----
+
+== SemanticMessageHistory (relevancy-based)
+
+`SemanticMessageHistory` embeds message content on write and retrieves messages by vector similarity to a prompt. It embeds `MessageHistory`, so all recency-based methods above remain available.
+
+NOTE: A `vectorize.Vectorizer` is required — the Go port has no default local embedding model. See xref:vectorizers.adoc[Vectorizers].
+
+[source,go]
+----
+import "github.com/redis-developer/redis-vl-golang/extensions/history"
+
+h, err := history.NewSemanticMessageHistory(ctx, client, "my-session", vectorizer,
+    history.SemanticMessageHistoryOptions{
+        DistanceThreshold: 0.7, // default 0.3
+    })
+----
+
+`SemanticMessageHistoryOptions` adds two fields to the base options: `DistanceThreshold` (maximum semantic distance for relevance retrieval, default `0.3`) and `Overwrite` (recreate the index schema if it already exists).
+
+=== Fetching relevant context
+
+`GetRelevant` embeds the prompt and returns messages within the distance threshold:
+
+[source,go]
+----
+err = h.AddMessages(ctx, []history.Message{
+    {Role: "user", Content: "what is the weather going to be today?"},
+    {Role: "llm", Content: "I don't know", Metadata: map[string]any{"model": "gpt-4"}},
+})
+
+relevant, err := h.GetRelevant(ctx, "weather", history.GetRelevantOptions{TopK: 1})
+// >>> [{Role: "user", Content: "what is the weather going to be today?"}]
+----
+
+`GetRelevantOptions` fields:
+
+[cols="1,3,1"]
+|===
+|Field |Description |Default
+
+|`TopK`
+|Maximum number of messages to return.
+|`5`
+
+|`SessionTag`
+|Overrides the instance default session.
+|instance tag
+
+|`Roles`
+|Filter messages by role.
+|all roles
+
+|`DistanceThreshold`
+|Per-call override of the relevance threshold.
+|instance value
+
+|`FallBack`
+|Return the most recent messages when nothing relevant is found.
+|`false`
+|===
+
+The threshold can also be read and updated on the instance with `DistanceThreshold()` and `SetDistanceThreshold(t)`.
+
+TIP: Use `GetRelevant` to build a focused LLM context window: instead of replaying the entire conversation, fetch only the exchanges semantically related to the user's latest question, and set `FallBack: true` to degrade gracefully to recency when nothing matches.
+
+== Session scoping and key format
+
+Messages are stored as Redis hashes under the configured prefix (the history name by default). Each entry ID mirrors the Python format:
+
+----
+{session_tag}:{timestamp}:{8-char random suffix}
+----
+
+so the full Redis key looks like `my-session:01JX...:1751...:a1b2c3d4`. The `session_tag` field is indexed as a tag, and every retrieval method filters on it — pass a `SessionTag` in the options (or the trailing argument of the add methods) to work with multiple conversations on one index.
+
+== See also
+
+* xref:semantic-caching.adoc[Semantic Caching] — cache LLM responses by prompt similarity
+* xref:vectorizers.adoc[Vectorizers] — embedding providers for `SemanticMessageHistory`
+* xref:semantic-router.adoc[Semantic Router] — route queries to topics and intents

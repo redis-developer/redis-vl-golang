@@ -1,0 +1,223 @@
+= Querying with RedisVL
+
+[.lead]
+RedisVL provides a family of query builders in the `query` package, covering vector similarity search, distance-range search, metadata filtering, full-text search, and hybrid combinations of all of them.
+
+All examples assume an `index` created as shown in xref:getting-started.adoc[Getting Started], and a query vector `vec []float64`.
+
+[cols="1,2"]
+|===
+|Query Type |Use Case
+
+|`VectorQuery` |KNN semantic similarity search with optional filters
+|`VectorRangeQuery` |Vector search within a distance threshold
+|`FilterQuery` |Metadata filtering without vector search
+|`CountQuery` |Count documents matching filter criteria
+|`TextQuery` |BM25 full-text search with field weighting
+|`HybridQuery` |Native text + vector fusion via `FT.HYBRID` (Redis 8.4+)
+|`AggregateHybridQuery` |Hybrid scoring via `FT.AGGREGATE` (Redis 8.x)
+|`MultiVectorQuery` |Weighted scoring across multiple vector fields
+|===
+
+== VectorQuery
+
+`VectorQuery` performs KNN search against a vector field. Results are sorted by vector distance and include a `vector_distance` field by default.
+
+[source,go]
+----
+import "github.com/redis-developer/redis-vl-golang/query"
+
+q := query.NewVectorQuery("embedding", vec).
+    NumResults(5).                                  // top-k (default 10)
+    ReturnFields("title", "genre").                 // vector_distance is always added
+    Filter(filter.Tag("genre").Eq("comedy")).       // optional metadata filter
+    EfRuntime(100)                                  // HNSW: higher for better recall
+
+results, err := index.Query(ctx, q)
+----
+
+Other useful builders:
+
+* `Paging(offset, num)` — paginate results.
+* `Dtype(vectors.Float64)` — encode the query vector with a different datatype (default `float32`).
+* `NewVectorQueryFromBytes("embedding", blob)` — pass a pre-encoded vector buffer.
+* `NoReturnScore()` — omit `vector_distance` from results.
+* `NormalizeVectorDistance()` — convert COSINE/L2 distances to a 0..1 similarity score.
+* `SortByField(field, asc)` — override the default distance sort.
+* `SetHybridPolicy(query.Batches)` / `BatchSize(n)` — control filtered-search execution.
+* `SearchWindowSize`, `UseSearchHistory`, `SearchBufferCapacity` — SVS-VAMANA runtime parameters.
+
+== VectorRangeQuery
+
+`VectorRangeQuery` returns all vectors within a distance threshold rather than a fixed top-k. The default threshold is 0.2.
+
+[source,go]
+----
+q := query.NewVectorRangeQuery("embedding", vec).
+    DistanceThreshold(0.35).
+    NumResults(20). // cap on returned matches (default 10)
+    ReturnFields("title")
+
+results, err := index.Query(ctx, q)
+----
+
+`Epsilon(e)` adjusts the range search boundary factor, and `Filter` attaches a metadata filter just like `VectorQuery`. With `NormalizeVectorDistance()`, the threshold is interpreted as a 0..1 similarity score instead of a raw distance.
+
+== FilterQuery
+
+`FilterQuery` runs a standard (non-vector) search using a filter expression. A `nil` filter matches everything.
+
+[source,go]
+----
+import "github.com/redis-developer/redis-vl-golang/filter"
+
+q := query.NewFilterQuery(filter.Tag("genre").Eq("comedy")).
+    ReturnFields("title", "rating").
+    SortByField("rating", false). // descending
+    NumResults(10)
+
+results, err := index.Query(ctx, q)
+----
+
+== CountQuery
+
+`CountQuery` counts matching records without fetching content:
+
+[source,go]
+----
+count, err := index.Count(ctx, query.NewCountQuery(filter.Num("year").Ge(2000)))
+----
+
+== TextQuery
+
+`TextQuery` performs full-text search with the BM25STD scorer by default. English stopwords are removed from the query text client-side, mirroring the Python library.
+
+[source,go]
+----
+q := query.NewTextQuery("wizard of oz", "title").
+    NumResults(5).
+    ReturnFields("title", "genre")
+
+results, err := index.Query(ctx, q)
+----
+
+Refinements:
+
+* `FieldWeights(map[string]float64{"title": 2, "description": 1})` — search multiple text fields with per-field weights.
+* `TextWeights(map[string]float64{"wizard": 3})` — boost individual words in the query text.
+* `Scorer("TFIDF")` — change the scoring algorithm (`TFIDF`, `BM25STD`, `BM25`, `TFIDF.DOCNORM`, `DISMAX`, `DOCSCORE`).
+* `Stopwords("a", "the")` — replace the stopword set; `Stopwords()` disables removal.
+* `Filter(...)` — combine with a metadata filter.
+
+Text scores are returned in each document's `score` field (disable with `NoReturnScore()`).
+
+== HybridQuery (FT.HYBRID)
+
+`HybridQuery` combines full-text and vector similarity with server-side score fusion using the native `FT.HYBRID` command.
+
+WARNING: `HybridQuery` requires Redis 8.4.0 or later. On older servers, use <<aggregatehybridquery-ft-aggregate,AggregateHybridQuery>> instead.
+
+[source,go]
+----
+hq := query.NewHybridQuery("running shoes", "description", vec, "embedding").
+    CombineLinear(0.3). // alpha*text + (1-alpha)*vector; or CombineRRF(window, constant)
+    NumResults(10).
+    ReturnFields("description", "price")
+
+rows, err := index.Hybrid(ctx, hq)
+----
+
+The vector arm defaults to KNN; tune or switch it:
+
+[source,go]
+----
+hq.UseKNN(100)          // KNN with EF_RUNTIME 100
+hq.UseRange(0.5, 0.01)  // radius search: RADIUS 0.5, EPSILON 0.01
+----
+
+Additional builders: `Filter` (applies to both arms), `TextScorer` (default `BM25STD`), `Stopwords`, `TextWeights`, `Dtype`, `VectorBytes`, and `YieldTextScoreAs` / `YieldVsimScoreAs` / `YieldCombinedScoreAs` to name the yielded score fields. When no `Combine*` method is called, the server default fusion (RRF) applies.
+
+== AggregateHybridQuery (FT.AGGREGATE)
+
+`AggregateHybridQuery` achieves hybrid scoring through an `FT.AGGREGATE` pipeline, computing `hybrid_score = (1-alpha)*text_score + alpha*vector_similarity`.
+
+NOTE: This query relies on the `FT.AGGREGATE` `SCORER` and `ADDSCORES` options, available in Redis 8.x. It does not support runtime parameters like `EF_RUNTIME`.
+
+[source,go]
+----
+hq := query.NewAggregateHybridQuery("running shoes", "description", vec, "embedding").
+    Alpha(0.7). // vector weight (default 0.7)
+    NumResults(10).
+    ReturnFields("description", "price")
+
+rows, err := index.Aggregate(ctx, hq)
+----
+
+Each result row includes `text_score`, `vector_similarity`, and `hybrid_score`.
+
+== MultiVectorQuery
+
+`MultiVectorQuery` searches several vector fields simultaneously and ranks documents by a weighted sum of per-field cosine similarities. All vector fields must use the cosine distance metric.
+
+[source,go]
+----
+mq, err := query.NewMultiVectorQuery(
+    query.Vector{Values: textVec, FieldName: "text_embedding", Weight: 0.7},
+    query.Vector{Values: imageVec, FieldName: "image_embedding", Weight: 0.3},
+)
+if err != nil {
+    log.Fatal(err)
+}
+mq.NumResults(10).ReturnFields("title")
+
+rows, err := index.Aggregate(ctx, mq)
+----
+
+Each `query.Vector` clause also accepts `Bytes` (pre-encoded vector), `Dtype` (default `float32`), and `MaxDistance` (range radius in [0, 2], default 2.0). Rows include per-field `score_N` values and the final `combined_score`.
+
+== Pagination
+
+`Paginate` executes any query page by page, invoking a callback per page:
+
+[source,go]
+----
+err := index.Paginate(ctx, q, 100, func(page []map[string]any) error {
+    for _, doc := range page {
+        process(doc)
+    }
+    return nil // return an error to stop early
+})
+----
+
+== Batch operations
+
+`BatchSearch` and `BatchQuery` execute multiple queries in pipelined round-trips (default batch size 10), returning results in query order:
+
+[source,go]
+----
+queries := []query.Query{
+    query.NewVectorQuery("embedding", vecA).NumResults(3),
+    query.NewVectorQuery("embedding", vecB).NumResults(3),
+    query.NewFilterQuery(filter.Tag("genre").Eq("drama")),
+}
+
+// processed documents per query
+perQuery, err := index.BatchQuery(ctx, queries)
+
+// or raw parsed results, with an explicit batch size
+raw, err := index.BatchSearch(ctx, queries, 20)
+----
+
+`FetchMany` retrieves multiple documents by id in one pipelined round-trip; missing documents are `nil` in the result slice:
+
+[source,go]
+----
+docs, err := index.FetchMany(ctx, "john", "mary", "ghost")
+// docs[2] == nil if "ghost" does not exist
+----
+
+== Next steps
+
+* xref:filters.adoc[Filter Expressions] — build the filters used by these queries
+* xref:vectorizers.adoc[Vectorizers] — produce query vectors from text
+* {url-redis-search}[Redis Query Engine documentation^]

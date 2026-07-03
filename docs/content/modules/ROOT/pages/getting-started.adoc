@@ -1,0 +1,233 @@
+= Getting Started
+
+[.lead]
+This guide walks you through the core RedisVL workflow: defining a schema, creating a search index, loading documents with vector embeddings, and running your first vector similarity query.
+
+== Prerequisites
+
+* Go 1.23 or later
+* A running {url-redis}[Redis^] instance with the {url-redis-search}[Query Engine^] (Redis 8 has it built in)
+
+== Installation
+
+Install RedisVL into your Go module:
+
+[source,shell,subs="attributes+"]
+----
+go get github.com/redis-developer/redis-vl-golang@v{redisvl-version}
+----
+
+The quickest way to run Redis locally is Docker:
+
+[source,shell]
+----
+docker run -d -p 6379:6379 redis:8.8.0
+----
+
+TIP: Redis Cloud offers a free tier if you prefer a managed database, and the free https://redis.io/insight/[Redis Insight^] GUI is a great companion for inspecting your indexed data.
+
+== Define a schema
+
+A schema describes the index: its name, key prefix, storage type (hash or JSON), and typed fields. You can build it programmatically or load it from YAML — the YAML format is identical to the {url-redisvl-python}[Python library's^].
+
+=== Programmatically
+
+[source,go]
+----
+import "github.com/redis-developer/redis-vl-golang/schema"
+
+embedding, err := schema.NewVectorField("embedding", schema.VectorAttrs{
+    Algorithm:      schema.Flat, // or schema.HNSW, schema.SVSVamana
+    Dims:           4,
+    DistanceMetric: schema.Cosine,
+    Datatype:       "float32",
+})
+if err != nil {
+    log.Fatal(err)
+}
+
+s, err := schema.NewIndexSchema(
+    schema.IndexInfo{
+        Name:        "user-idx",
+        Prefixes:    []string{"user"},
+        StorageType: schema.Hash,
+    },
+    schema.NewTagField("user"),
+    schema.NewTagField("credit_score"),
+    schema.NewTextField("job_title", schema.TextAttrs{
+        BaseAttrs: schema.BaseAttrs{Sortable: true},
+    }),
+    schema.NewNumericField("age", schema.NumericAttrs{
+        BaseAttrs: schema.BaseAttrs{Sortable: true},
+    }),
+    embedding,
+)
+----
+
+`NewTextField`, `NewTagField`, `NewNumericField`, and `NewGeoField` take optional attribute structs; `NewVectorField` requires `VectorAttrs` with at least `Dims` and `Algorithm`, and validates them.
+
+=== From YAML
+
+[source,yaml]
+----
+version: '0.1.0'
+
+index:
+    name: user-idx
+    prefix: user
+    key_separator: ':'
+    storage_type: hash
+
+fields:
+    - name: user
+      type: tag
+    - name: credit_score
+      type: tag
+    - name: job_title
+      type: text
+      attrs:
+        sortable: true
+    - name: embedding
+      type: vector
+      attrs:
+        algorithm: flat
+        dims: 4
+        distance_metric: cosine
+        datatype: float32
+----
+
+[source,go]
+----
+s, err := schema.FromYAMLFile("schemas/schema.yaml")
+----
+
+`schema.FromYAML` parses YAML bytes directly, and `s.ToYAML()` / `s.ToYAMLFile(path, overwrite)` serialize a schema back out.
+
+== Create a SearchIndex
+
+`SearchIndex` performs all admin, load, and search operations. Every method takes a `context.Context`, so one type covers both the sync and async use cases of the Python library.
+
+[source,go]
+----
+import redisvl "github.com/redis-developer/redis-vl-golang"
+
+index, err := redisvl.NewSearchIndexFromURL(s, "redis://localhost:6379")
+if err != nil {
+    log.Fatal(err)
+}
+defer index.Close()
+
+// Create the index in Redis
+err = index.Create(ctx)
+----
+
+You can also bind to an existing https://github.com/redis/go-redis[go-redis^] client — useful when your application already manages a connection pool:
+
+[source,go]
+----
+client := redis.NewClient(&redis.Options{Addr: "localhost:6379"})
+index := redisvl.NewSearchIndex(s, client)
+----
+
+`Create` accepts options for recreating an index:
+
+[source,go]
+----
+// Overwrite the index definition; Drop also deletes the underlying documents
+err = index.Create(ctx, redisvl.CreateOptions{Overwrite: true, Drop: false})
+----
+
+NOTE: Without `Overwrite`, `Create` is a no-op if an index with the same name already exists.
+
+== Load data
+
+Documents are plain `[]map[string]any`. For hash storage, vector values must be encoded as little-endian byte buffers — use `vectors.ToBuffer` (or `vectors.ToBuffer32` for `[]float32`):
+
+[source,go]
+----
+import "github.com/redis-developer/redis-vl-golang/vectors"
+
+emb1, _ := vectors.ToBuffer([]float64{0.1, 0.1, 0.5, 0.9}, vectors.Float32)
+emb2, _ := vectors.ToBuffer([]float64{0.7, 0.1, 0.5, 0.3}, vectors.Float32)
+
+data := []map[string]any{
+    {"user": "john", "credit_score": "high", "job_title": "engineer", "age": 34, "embedding": emb1},
+    {"user": "mary", "credit_score": "low", "job_title": "doctor", "age": 52, "embedding": emb2},
+}
+
+keys, err := index.Load(ctx, data, redisvl.LoadOptions{IDField: "user"})
+// keys: ["user:john", "user:mary"]
+----
+
+`LoadOptions` controls how documents are written:
+
+[cols="1,3"]
+|===
+|Option |Description
+
+|`IDField`
+|Document field whose value becomes the key id; a ULID is generated when empty.
+
+|`Keys`
+|Explicit full Redis keys, one per document (overrides `IDField`).
+
+|`TTL`
+|Expiration applied to each written key.
+
+|`BatchSize`
+|Pipeline batch size (default 200).
+
+|`Preprocess`
+|Function applied to each document before writing.
+
+|`Validate`
+|Check records against the schema before writing (off by default).
+|===
+
+Fetch documents back by id with `index.Fetch(ctx, "john")` or in bulk with `index.FetchMany(ctx, "john", "mary")`.
+
+NOTE: For {url-redis-json}[JSON storage^], vectors are stored as plain float slices (JSON arrays) — no byte encoding needed.
+
+== Run a vector query
+
+[source,go]
+----
+import "github.com/redis-developer/redis-vl-golang/query"
+
+q := query.NewVectorQuery("embedding", []float64{0.1, 0.1, 0.5, 0.1}).
+    NumResults(3).
+    ReturnFields("user", "credit_score", "job_title")
+
+results, err := index.Query(ctx, q)
+for _, doc := range results {
+    fmt.Println(doc["user"], doc["vector_distance"])
+}
+----
+
+Each result is a `map[string]any` containing the requested fields plus `vector_distance`. See xref:queries.adoc[Querying with RedisVL] for the full range of query types and xref:filters.adoc[Filter Expressions] for metadata filtering.
+
+== Inspect and clean up
+
+`Info` returns the `FT.INFO` attributes of the index:
+
+[source,go]
+----
+info, err := index.Info(ctx)
+fmt.Println(info["num_docs"], info["percent_indexed"])
+----
+
+When you are done, delete the index. Pass `true` to also drop the indexed documents:
+
+[source,go]
+----
+err = index.Delete(ctx, true)
+----
+
+If the index does not exist, operations return an error you can test with `errors.Is(err, redisvl.ErrIndexNotFound)` — nothing panics.
+
+== Next steps
+
+* xref:queries.adoc[Querying with RedisVL] — all query types, from KNN to hybrid search
+* xref:filters.adoc[Filter Expressions] — the fluent metadata filter DSL
+* xref:vectorizers.adoc[Vectorizers] — generate embeddings with hosted APIs or local models
+* {url-pkg-go-dev}[API reference on pkg.go.dev^]

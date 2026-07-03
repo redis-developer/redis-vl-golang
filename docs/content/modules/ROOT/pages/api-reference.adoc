@@ -1,0 +1,73 @@
+= API Reference
+
+[.lead]
+The complete Go API reference for RedisVL is published on pkg.go.dev, generated directly from the source code documentation. Unlike the Java library's bundled Javadoc, Go reference docs live alongside the module on the central package index.
+
+== Reference documentation
+
+* {url-pkg-go-dev}[Core module on pkg.go.dev^] — `github.com/redis-developer/redis-vl-golang`
+* https://pkg.go.dev/github.com/redis-developer/redis-vl-golang/extensions/vectorize/hf[hf module on pkg.go.dev^] — local embeddings and cross-encoders via ONNX Runtime (a separate Go module because it uses cgo)
+
+== Packages
+
+[cols="2,3"]
+|===
+|Package |Description
+
+|{url-pkg-go-dev}[redisvl^]
+|Root package: `SearchIndex`, index lifecycle (`Create`, `Load`, `Fetch`, `Query`, `Delete`), batching, and sentinel errors like `ErrIndexNotFound`.
+
+|{url-pkg-go-dev}/schema[schema^]
+|Index schema definitions: `IndexSchema`, field constructors (text, tag, numeric, geo, vector), YAML loading, and SVS-VAMANA compression advisors.
+
+|{url-pkg-go-dev}/query[query^]
+|Query builders: `VectorQuery`, `VectorRangeQuery`, `FilterQuery`, `TextQuery`, `HybridQuery`, `AggregateHybridQuery`, `MultiVectorQuery`, and `CountQuery`.
+
+|{url-pkg-go-dev}/filter[filter^]
+|Fluent filter expression DSL for tags, numerics, text, geo, and timestamps, combinable with `And`/`Or`.
+
+|{url-pkg-go-dev}/vectors[vectors^]
+|Vector encoding utilities: `ToBuffer`/`FromBuffer` and the supported datatypes (`float32`, `float64`, `float16`, `bfloat16`, ...).
+
+|{url-pkg-go-dev}/extensions/vectorize[extensions/vectorize^]
+|Embedding providers: OpenAI, Azure OpenAI, Cohere, Mistral, VoyageAI, Ollama, and the `Func` adapter for custom embedding functions.
+
+|https://pkg.go.dev/github.com/redis-developer/redis-vl-golang/extensions/vectorize/hf[extensions/vectorize/hf^]
+|Local, in-process sentence-transformer embeddings and cross-encoder reranking via ONNX Runtime (separate module).
+
+|{url-pkg-go-dev}/extensions/cache[extensions/cache^]
+|`SemanticCache`, `EmbeddingsCache`, `CachedVectorizer`, and the managed `LangCache` client. See xref:semantic-caching.adoc[Semantic Caching].
+
+|{url-pkg-go-dev}/extensions/history[extensions/history^]
+|`MessageHistory` and `SemanticMessageHistory` for LLM conversation memory. See xref:message-history.adoc[Message History].
+
+|{url-pkg-go-dev}/extensions/router[extensions/router^]
+|`SemanticRouter` for classifying statements against routes. See xref:semantic-router.adoc[Semantic Router].
+
+|{url-pkg-go-dev}/extensions/rerank[extensions/rerank^]
+|Hosted rerankers (Cohere, VoyageAI) for improving search result relevancy. See xref:rerankers.adoc[Rerankers].
+
+|{url-pkg-go-dev}/mcpserver[mcpserver^]
+|The MCP server implementation behind `rvl mcp`. See xref:mcp-server.adoc[MCP Server].
+|===
+
+== Versioning
+
+RedisVL for Golang follows Go module conventions: releases are git tags (`v{redisvl-version}`, ...) on the {url-redisvl-golang}[repository^], and pkg.go.dev renders the docs for every tagged version. Pin a specific version in your `go.mod`:
+
+[source,shell,subs="attributes+"]
+----
+go get github.com/redis-developer/redis-vl-golang@v{redisvl-version}
+----
+
+The `hf` module is tagged and versioned alongside the core module but must be required separately.
+
+== Go doc conventions
+
+Reference content comes straight from the source doc comments, so it is always in sync with the code:
+
+* Hovering over any RedisVL symbol in a Go-aware IDE (gopls) shows the same documentation.
+* `go doc` works offline from your module cache, for example `go doc github.com/redis-developer/redis-vl-golang/extensions/cache.SemanticCache`.
+* Runnable examples on pkg.go.dev come from `Example*` functions in the test files.
+
+TIP: On pkg.go.dev, use the version switcher at the top of the page to match the documentation to the module version in your `go.mod`.

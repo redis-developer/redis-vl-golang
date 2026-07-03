@@ -41,6 +41,11 @@ pip-log.txt
 .mypy_cache/
 .ruff_cache/
 
+# Documentation site build artifacts (Antora)
+docs/node_modules/
+docs/build/
+docs/.cache/
+
 # Editor and IDE files
 .idea/
 .vscode/

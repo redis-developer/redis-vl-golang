@@ -1,0 +1,208 @@
+= Semantic Caching
+
+[.lead]
+Reduce LLM costs and latency by caching responses and retrieving them by semantic similarity of the prompt. The `extensions/cache` package provides a self-hosted `SemanticCache` backed by your own Redis, an exact-match `EmbeddingsCache` for vector embeddings, and a client for the managed {url-langcache}[LangCache^] service.
+
+== SemanticCache
+
+`SemanticCache` stores prompt/response pairs in Redis and finds them again with a vector range search over the prompt embedding. A cache hit means a semantically similar prompt was answered before — you can return the cached response instead of calling the LLM.
+
+NOTE: Unlike the Python library, the Go port has no default local embedding model, so `NewSemanticCache` requires an explicit `vectorize.Vectorizer`. Pick any provider from xref:vectorizers.adoc[Vectorizers], or run models locally with the `hf` module or Ollama.
+
+[source,go]
+----
+import (
+    "time"
+
+    "github.com/redis-developer/redis-vl-golang/extensions/cache"
+    "github.com/redis-developer/redis-vl-golang/extensions/vectorize"
+)
+
+vectorizer, err := vectorize.NewOpenAIVectorizer(ctx, vectorize.OpenAIConfig{
+    Model: "text-embedding-3-small",
+})
+
+llmcache, err := cache.NewSemanticCache(ctx, client, vectorizer, cache.SemanticCacheOptions{
+    Name:              "llmcache",
+    TTL:               360 * time.Second,
+    DistanceThreshold: 0.1, // Redis COSINE distance [0-2], lower is stricter
+})
+----
+
+`SemanticCacheOptions` fields:
+
+[cols="1,3,1"]
+|===
+|Field |Description |Default
+
+|`Name`
+|Cache index name and key prefix.
+|`llmcache`
+
+|`DistanceThreshold`
+|Maximum semantic distance for a hit, in Redis COSINE units `[0-2]`.
+|`0.1`
+
+|`TTL`
+|Expiration for cached entries; zero means no expiration.
+|`0`
+
+|`FilterableFields`
+|Extra `schema.Field` values usable in `Check` filters.
+|none
+
+|`Overwrite`
+|Recreate the index schema if it already exists.
+|`false`
+|===
+
+=== Storing and checking
+
+`Store` embeds the prompt, writes the entry, and returns the Redis key. `Check` embeds the incoming prompt and returns hits within the distance threshold as `[]CacheHit`; the TTL of every hit is refreshed.
+
+[source,go]
+----
+// store a user query and LLM response
+key, err := llmcache.Store(ctx, "What is the capital city of France?", "Paris")
+
+// check with a slightly different phrasing (before invoking the LLM)
+hits, err := llmcache.Check(ctx, "What is France's capital city?")
+if len(hits) > 0 {
+    fmt.Println(hits[0].Response, hits[0].VectorDistance)
+}
+----
+
+Each `CacheHit` carries `Key` (full Redis key), `EntryID`, `Prompt`, `Response`, `VectorDistance`, `InsertedAt`, `UpdatedAt`, `Metadata`, and `Filters` (values of any filterable fields stored on the entry).
+
+`StoreOptions` lets you attach metadata, filter values, a per-entry TTL, or a precomputed embedding:
+
+[source,go]
+----
+key, err := llmcache.Store(ctx, prompt, response, cache.StoreOptions{
+    Metadata: map[string]any{"model": "gpt-4"},
+    Filters:  map[string]any{"user": "alice"}, // requires FilterableFields
+    TTL:      time.Hour,                       // overrides the cache default
+})
+----
+
+`CheckOptions` controls the lookup:
+
+[source,go]
+----
+import "github.com/redis-developer/redis-vl-golang/filter"
+
+hits, err := llmcache.Check(ctx, prompt, cache.CheckOptions{
+    NumResults:        3,                              // default 1
+    Filter:            filter.Tag("user").Eq("alice"), // scope to matching entries
+    DistanceThreshold: 0.2,                            // per-call override
+})
+----
+
+NOTE: A zero `DistanceThreshold` in `CheckOptions` means "use the cache default", mirroring the Python behavior.
+
+=== Distance threshold semantics
+
+Distances are Redis COSINE distances in `[0, 2]`: `0` is identical, lower is stricter. A threshold around `0.1`–`0.2` typically catches close paraphrases without false positives; tune it per model and workload with `SetDistanceThreshold` (values outside `[0, 2]` are rejected).
+
+=== Maintenance
+
+[source,go]
+----
+err = llmcache.Update(ctx, key, map[string]any{"response": "updated"}) // also refreshes TTL
+llmcache.Expire(ctx, key, 10*time.Minute) // set or refresh a TTL
+err = llmcache.Drop(ctx, entryID)         // remove by entry ID
+err = llmcache.DropKeys(ctx, key)         // remove by full Redis key
+err = llmcache.Clear(ctx)                 // remove all entries, keep the index
+err = llmcache.Delete(ctx)                // remove the index and all entries
+----
+
+`Index()` exposes the underlying `SearchIndex`, and `TTL()`/`SetTTL()` and `DistanceThreshold()`/`SetDistanceThreshold()` read and update the defaults.
+
+== EmbeddingsCache
+
+`EmbeddingsCache` caches embedding vectors keyed *exactly* by content and model name — no vector search involved. Use it to avoid re-embedding the same texts.
+
+[source,go]
+----
+embedCache := cache.NewEmbeddingsCache(client, cache.EmbeddingsCacheOptions{
+    Name: "embed_cache", // default "embedcache"
+    TTL:  time.Hour,     // zero means no expiration
+})
+
+key, err := embedCache.Set(ctx, "what is machine learning?",
+    "text-embedding-3-small", embedding, map[string]any{"source": "faq"})
+
+entry, err := embedCache.Get(ctx, "what is machine learning?", "text-embedding-3-small")
+if entry != nil {
+    fmt.Println(len(entry.Embedding)) // cached vector
+}
+----
+
+Retrieval refreshes the entry TTL and returns `nil` (not an error) on a miss. The full API:
+
+* `Set` / `SetWithTTL` — store one embedding, optionally with a per-entry TTL override.
+* `MSet(ctx, modelName, items)` — pipeline many `content -> embedding` pairs for one model.
+* `Get` / `GetByKey` and `MGet(ctx, modelName, contents...)` / `MGetByKeys` — batched results match input order, with `nil` for misses.
+* `Exists`, `Drop`, `DropByKeys`, `Clear` — existence checks and removal.
+* `Key(content, modelName)` — compute the full Redis key for a pair.
+
+== CachedVectorizer
+
+`CachedVectorizer` wraps any `vectorize.Vectorizer` with an `EmbeddingsCache`, so repeated texts are embedded only once. It implements `vectorize.Vectorizer` itself and can be passed anywhere a vectorizer is expected — including `NewSemanticCache`.
+
+[source,go]
+----
+cached := cache.NewCachedVectorizer(vectorizer, embedCache)
+
+emb, err := cached.Embed(ctx, "What is machine learning?") // computes + caches
+emb, err = cached.Embed(ctx, "What is machine learning?")  // served from Redis
+----
+
+With `EmbedMany`, cached texts are served from Redis and only the misses are embedded, in a single batch. Cache reads and writes are best-effort: a Redis failure falls back to the inner vectorizer rather than failing the call.
+
+== Managed LangCache
+
+{url-langcache}[LangCache^] is Redis's fully managed semantic caching service. `cache.NewLangCache` offers the same `Check`/`Store` surface as `SemanticCache`, but embeddings are computed *server-side* — no vectorizer required.
+
+[source,go]
+----
+lc, err := cache.NewLangCache(cache.LangCacheConfig{
+    ServerURL: "https://<your-langcache-host>",
+    CacheID:   "<cache-id>",
+    // APIKey defaults to the LANGCACHE_API_KEY environment variable
+})
+
+entryID, err := lc.Store(ctx, "What is the capital of France?", "Paris",
+    cache.LangCacheStoreOptions{Attributes: map[string]string{"topic": "geo"}})
+
+hits, err := lc.Check(ctx, "What's France's capital?", cache.LangCacheCheckOptions{
+    NumResults:        1,
+    DistanceThreshold: 0.2,
+    Attributes:        map[string]string{"topic": "geo"},
+})
+----
+
+`LangCacheConfig` fields: `ServerURL` and `CacheID` (required), `APIKey` (falls back to `LANGCACHE_API_KEY`), `DistanceScale`, `UseExactSearch` (adds the exact-match strategy), `DisableSemanticSearch` (only valid with `UseExactSearch`), `TTL`, `MaxRetries` (default 3), and `HTTPClient`.
+
+`DistanceScale` controls how thresholds and returned distances are expressed:
+
+[cols="1,3"]
+|===
+|Scale |Meaning
+
+|`normalized` (default)
+|Distances in `[0, 1]`; `similarity = 1 - distance`.
+
+|`redis`
+|Redis COSINE distances in `[0, 2]`, matching `SemanticCache` semantics.
+|===
+
+Management calls: `DeleteByID(ctx, entryID)` removes one entry, `DeleteQuery(ctx, attributes)` removes all entries matching every attribute and returns the count, and `Flush(ctx)` removes everything.
+
+WARNING: `DeleteQuery` with an empty attributes map deletes *all* entries, and `Flush` cannot be undone.
+
+== See also
+
+* xref:vectorizers.adoc[Vectorizers] — embedding providers for `SemanticCache`
+* xref:message-history.adoc[Message History] — conversation memory for LLM apps
+* {url-langcache}[LangCache documentation^]

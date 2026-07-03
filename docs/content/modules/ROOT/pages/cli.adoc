@@ -1,0 +1,219 @@
+= The rvl CLI
+
+[.lead]
+RedisVL ships with `rvl`, a purpose-built command-line tool for creating, inspecting, and managing Redis search indices from the terminal — a Go port of the Python library's `rvl` CLI. It also hosts the xref:mcp-server.adoc[MCP server].
+
+== Installation
+
+Install the latest release directly with `go install`:
+
+[source,shell]
+----
+go install github.com/redis-developer/redis-vl-golang/cmd/rvl@latest
+----
+
+Or build from a checkout of the {url-redisvl-golang}[repository^]:
+
+[source,shell]
+----
+go build -o bin/rvl ./cmd/rvl   # or: make build-rvl
+----
+
+== Connecting to Redis
+
+Every command resolves the Redis connection URL in this order:
+
+1. The `-u` / `--url` flag on the command.
+2. The `REDIS_URL` environment variable.
+3. `redis://localhost:6379`.
+
+[source,shell]
+----
+export REDIS_URL=redis://:password@redis.example.com:6379
+rvl index listall
+
+# or per command:
+rvl index listall -u redis://localhost:6380
+----
+
+== Commands
+
+[source,shell]
+----
+$ rvl --help
+
+rvl - RedisVL command line tool
+
+Commands:
+  index create  -s schema.yaml [--overwrite]   Create a new index from a schema file
+  index info    -i <name> [--json]             Show details about an index
+  index listall [--json]                       List all indexes
+  index delete  -i <name>                      Delete an index, keep its data
+  index destroy -i <name>                      Delete an index and drop its data
+  stats         -i <name> | -s schema.yaml     Display index statistics
+  mcp           --config mcp.yaml              Run the RedisVL MCP server
+  version       [-s]                           Print the library version
+
+Options:
+  -u, --url    Redis connection URL (default: $REDIS_URL or redis://localhost:6379)
+----
+
+=== index create
+
+Creates an index from a schema YAML file (`-s` / `--schema`, required). Pass `--overwrite` to replace an existing index definition.
+
+[source,yaml]
+----
+index:
+  name: user-idx
+  prefix: user
+  storage_type: json
+
+fields:
+  - name: user
+    type: tag
+  - name: embedding
+    type: vector
+    attrs:
+      algorithm: flat
+      dims: 4
+      distance_metric: cosine
+      datatype: float32
+----
+
+[source,shell]
+----
+$ rvl index create -s schemas/schema.yaml
+Index created successfully: user-idx
+
+$ rvl index create -s schemas/schema.yaml --overwrite
+Index created successfully: user-idx
+----
+
+=== index info
+
+Shows the full `FT.INFO` details for an index, identified by name (`-i` / `--index`) or by schema file (`-s`). Add `--json` for machine-readable output.
+
+[source,shell]
+----
+$ rvl index info -i user-idx
+Index Information for "user-idx":
+  attributes                       [...]
+  index_name                       user-idx
+  num_docs                         42
+  ...
+
+$ rvl index info -i user-idx --json
+----
+
+=== index listall
+
+Lists every search index on the server.
+
+[source,shell]
+----
+$ rvl index listall
+Indices (2):
+  user-idx
+  products
+
+$ rvl index listall --json
+{
+  "indices": [
+    "user-idx",
+    "products"
+  ]
+}
+----
+
+=== index delete and index destroy
+
+Both take an index name via `-i` / `--index`. `delete` removes only the index definition; `destroy` also drops the indexed documents.
+
+[source,shell]
+----
+$ rvl index delete -i user-idx
+Index deleted (data preserved): user-idx
+
+$ rvl index destroy -i user-idx
+Index destroyed (index and data deleted): user-idx
+----
+
+WARNING: `index destroy` deletes the underlying documents from Redis. Use `index delete` when you only want to drop the index definition.
+
+=== stats
+
+Displays index statistics (document counts, memory usage, indexing failures, and more), mirroring the rows shown by the Python `rvl stats` table. The index can be identified by name (`-i`) or schema file (`-s`), and `--json` is supported.
+
+[source,shell]
+----
+$ rvl stats -i user-idx
+Statistics:
+Stat Key                         Value
+------------------------------------------------
+num_docs                         42
+num_terms                        118
+max_doc_id                       42
+num_records                      160
+percent_indexed                  1
+hash_indexing_failures           0
+...
+vector_index_sz_mb               0.31
+----
+
+=== mcp
+
+Runs the RedisVL MCP server, exposing an existing index to MCP-compatible clients:
+
+[source,shell]
+----
+rvl mcp --config mcp.yaml [--read-only] [--transport stdio|streamable-http] \
+        [--host <host>] [--port <port>] [--allow-unauthenticated]
+----
+
+[cols="1,3,1"]
+|===
+|Flag |Description |Default
+
+|`--config`
+|Path to the MCP YAML config file (required).
+|—
+
+|`--read-only`
+|Disable the upsert tool.
+|`false`
+
+|`--transport`
+|`stdio` or `streamable-http`.
+|`stdio`
+
+|`--host`
+|Host to bind for the HTTP transport.
+|`127.0.0.1`
+
+|`--port`
+|Port to bind for the HTTP transport.
+|`8000`
+
+|`--allow-unauthenticated`
+|Allow binding the HTTP transport to a non-loopback host.
+|`false`
+|===
+
+See xref:mcp-server.adoc[MCP Server] for the configuration format and tool contract.
+
+=== version
+
+[source,shell]
+----
+$ rvl version
+RedisVL for Golang version 0.1.0
+
+$ rvl version -s   # or --short
+0.1.0
+----
+
+== See also
+
+* xref:getting-started.adoc[Getting Started] — schemas and index management from Go code
+* xref:mcp-server.adoc[MCP Server] — the `rvl mcp` command in depth

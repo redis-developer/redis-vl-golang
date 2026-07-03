@@ -1,0 +1,182 @@
+= Semantic Router
+
+[.lead]
+Build fast decision models that run directly in Redis. The `extensions/router` package classifies incoming statements against a set of routes — each defined by example reference phrases — using vector search and `FT.AGGREGATE`, a port of the Python library's `SemanticRouter`.
+
+== Defining routes
+
+A `Route` is a named topic described by reference phrases:
+
+[source,go]
+----
+import "github.com/redis-developer/redis-vl-golang/extensions/router"
+
+routes := []router.Route{
+    {
+        Name:              "greeting",
+        References:        []string{"hello", "hi", "good morning"},
+        Metadata:          map[string]any{"category": "smalltalk"},
+        DistanceThreshold: 0.3,
+    },
+    {
+        Name: "technical",
+        References: []string{
+            "a for loop", "code error", "debugging an application",
+        },
+        Metadata:          map[string]any{"category": "support", "priority": 1},
+        DistanceThreshold: 0.7,
+    },
+    {
+        Name:              "farewell",
+        References:        []string{"bye", "goodbye", "see you later"},
+        Metadata:          map[string]any{"category": "smalltalk"},
+        DistanceThreshold: 0.3,
+    },
+}
+----
+
+`Route` fields:
+
+[cols="1,3,1"]
+|===
+|Field |Description |Default
+
+|`Name`
+|Route name (required, non-empty).
+|—
+
+|`References`
+|Example phrases for the route (required, non-empty).
+|—
+
+|`Metadata`
+|Arbitrary data associated with the route.
+|none
+
+|`DistanceThreshold`
+|Maximum distance for matching this route, in `(0, 2]`.
+|`0.5`
+|===
+
+== Creating the router
+
+`NewSemanticRouter` creates the index, embeds every reference phrase with the given vectorizer, and stores them in Redis:
+
+[source,go]
+----
+sr, err := router.NewSemanticRouter(ctx, client, "topic-router", routes, vectorizer)
+----
+
+NOTE: A `vectorize.Vectorizer` is required — the Go port has no default local embedding model. See xref:vectorizers.adoc[Vectorizers].
+
+Options are passed with `SemanticRouterOptions`:
+
+[source,go]
+----
+sr, err := router.NewSemanticRouter(ctx, client, "topic-router", routes, vectorizer,
+    router.SemanticRouterOptions{
+        Config: router.RoutingConfig{
+            MaxK:        2,          // matches returned by RouteMany (default 1)
+            Aggregation: router.Min, // router.Avg (default), router.Min, router.Sum
+        },
+        Overwrite: true, // recreate the index if it already exists
+    })
+----
+
+== Routing statements
+
+`Route` classifies a statement to the single best route. A zero-value `RouteMatch` (empty `Name`) means no route matched within its threshold:
+
+[source,go]
+----
+match, err := sr.Route(ctx, "Hi, good morning")
+if match.Name != "" {
+    fmt.Printf("route=%s distance=%.4f\n", match.Name, match.Distance)
+}
+// >>> route=greeting distance=0.2739
+----
+
+`RouteMany` returns up to `Config.MaxK` matches, ordered by distance:
+
+[source,go]
+----
+matches, err := sr.RouteMany(ctx, "my code is throwing an error")
+// >>> [{Name: "technical", Distance: 0.41}, ...]
+----
+
+Both methods accept an optional precomputed vector to skip the embedding step:
+
+[source,go]
+----
+match, err := sr.Route(ctx, "", vector)
+----
+
+=== How matching works
+
+Each route may have several references, so the router aggregates the vector distances of all matching references per route inside Redis (`FT.AGGREGATE` with `GROUPBY route_name`). The `Aggregation` method controls how distances are combined:
+
+[cols="1,3"]
+|===
+|Method |Behavior
+
+|`router.Avg` (default)
+|Average distance across matching references — balanced.
+
+|`router.Min`
+|Closest single reference wins — most permissive.
+
+|`router.Sum`
+|Sum of distances — favors routes with many close references.
+|===
+
+Per-route distance thresholds are enforced server-side, so a route only matches when its aggregated distance is below its own `DistanceThreshold`.
+
+NOTE: Semantic routing uses vector similarity inside `FT.AGGREGATE`, which requires Redis 7.x or greater.
+
+== Updating configuration and thresholds
+
+[source,go]
+----
+// inspect and update the routing config
+cfg := sr.Config()
+sr.UpdateConfig(router.RoutingConfig{MaxK: 3, Aggregation: router.Avg})
+
+// inspect and tune per-route thresholds
+thresholds := sr.RouteThresholds() // map[string]float64
+sr.UpdateRouteThresholds(map[string]float64{
+    "greeting": 0.4,
+    "farewell": 0.35,
+})
+----
+
+== Managing routes
+
+[source,go]
+----
+// add a new route (or extra references to an existing route name)
+err = sr.AddRoute(ctx, router.Route{
+    Name:       "billing",
+    References: []string{"invoice question", "refund request"},
+})
+
+// remove a route and its references from Redis
+err = sr.RemoveRoute(ctx, "billing")
+
+// accessors
+name := sr.Name()      // router name
+routes := sr.Routes()  // configured routes
+----
+
+== Cleanup
+
+[source,go]
+----
+err = sr.Clear(ctx)  // delete all route references, keep the index and route definitions
+err = sr.Delete(ctx) // remove the router index and all references
+----
+
+== See also
+
+* xref:vectorizers.adoc[Vectorizers] — embedding providers for the router
+* xref:semantic-caching.adoc[Semantic Caching] — cache LLM responses by prompt similarity
+* xref:queries.adoc[Querying with RedisVL] — the query primitives the router builds on

@@ -5,7 +5,7 @@ REDIS_URL ?= redis://localhost:6379
 # or missing pip shims on PATH.
 PYTHON ?= $(shell command -v python3 >/dev/null 2>&1 && echo python3 || echo python)
 
-.PHONY: deps check test test-integration fmt vet lint build-rvl work deps-hf vet-hf test-hf test-hf-live bench-go bench-py bench-py-deps
+.PHONY: deps check test test-integration fmt vet lint build-rvl work deps-hf vet-hf test-hf test-hf-live docs-deps docs-build docs-serve bench-go bench-py bench-py-deps
 
 build-rvl:
 	go build -o bin/rvl ./cmd/rvl
@@ -59,6 +59,18 @@ test-hf:
 # Requires the onnxruntime shared library; set ONNXRUNTIME_LIB_PATH.
 test-hf-live:
 	cd extensions/vectorize/hf && RUN_HF_LIVE_TESTS=1 go test -run TestLive -v ./...
+
+# --- documentation site (Antora; see docs/) ---
+
+docs-deps:
+	cd docs && npm install --no-audit --no-fund
+
+docs-build:
+	cd docs && npx antora --stacktrace antora-playbook.yml
+
+# Port 5001: macOS AirPlay Receiver occupies 5000.
+docs-serve: docs-build
+	cd docs && npx http-server build/site -c-1 -p 5001
 
 # --- benchmarks (see benchmarks/README.md) ---
 

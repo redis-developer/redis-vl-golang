@@ -1,0 +1,209 @@
+= Vectorizers
+
+[.lead]
+Vectorizers turn text into embeddings for indexing and querying. RedisVL ships integrations for popular hosted embedding APIs, a local Ollama integration, an adapter for custom embedding functions, and a fully local in-process option built on ONNX Runtime.
+
+== The Vectorizer interface
+
+All providers implement `vectorize.Vectorizer`:
+
+[source,go]
+----
+type Vectorizer interface {
+    // Embed returns the embedding for a single text.
+    Embed(ctx context.Context, text string) ([]float64, error)
+    // EmbedMany returns embeddings for a batch of texts, in order.
+    EmbedMany(ctx context.Context, texts []string) ([][]float64, error)
+    // Dims is the embedding dimensionality.
+    Dims() int
+    // ModelName identifies the underlying embedding model.
+    ModelName() string
+    // Dtype is the vector datatype used when storing embeddings.
+    Dtype() vectors.DataType
+}
+----
+
+Anything satisfying this interface plugs into the semantic extensions (`SemanticCache`, `SemanticMessageHistory`, `SemanticRouter`), the MCP server, and `cache.CachedVectorizer`.
+
+The hosted HTTP providers share common behavior:
+
+* *Dimension auto-probing* — unless `Dims` is set in the config, the constructor makes one embedding call to detect the dimensionality.
+* *Batching* — `EmbedMany` splits inputs into batches (`BatchSize`, default 10).
+* *Retry with backoff* — transient API errors (429, 5xx) are retried up to `MaxRetries` times (default 3) with exponential backoff.
+* *Environment-variable defaults* — API keys fall back to the provider's standard environment variable.
+* *`DataType` option* — sets the datatype reported by `Dtype()` for storage (default `float32`).
+
+== OpenAI
+
+[source,go]
+----
+import "github.com/redis-developer/redis-vl-golang/extensions/vectorize"
+
+// APIKey defaults to OPENAI_API_KEY
+oai, err := vectorize.NewOpenAIVectorizer(ctx, vectorize.OpenAIConfig{
+    Model: "text-embedding-3-small", // default: "text-embedding-ada-002"
+})
+
+emb, err := oai.Embed(ctx, "Hello, world!")
+----
+
+`OpenAIConfig` fields: `APIKey`, `Model`, `BaseURL` (default `https://api.openai.com/v1` — point it at any OpenAI-compatible endpoint), `Dims`, `DataType`, `BatchSize`, `MaxRetries`, `HTTPClient`.
+
+== Azure OpenAI
+
+[source,go]
+----
+// APIKey defaults to AZURE_OPENAI_API_KEY, Endpoint to AZURE_OPENAI_ENDPOINT,
+// APIVersion to OPENAI_API_VERSION
+az, err := vectorize.NewAzureOpenAIVectorizer(ctx, vectorize.AzureOpenAIConfig{
+    Deployment: "my-embedding-deployment", // defaults to Model
+    Model:      "text-embedding-ada-002",
+})
+----
+
+API key, endpoint, and API version are all required (via config or environment).
+
+== Cohere
+
+Cohere embeddings are asymmetric: documents and queries should be embedded with different `input_type` hints.
+
+[source,go]
+----
+// APIKey defaults to COHERE_API_KEY; model defaults to "embed-english-v3.0"
+co, err := vectorize.NewCohereVectorizer(ctx, vectorize.CohereConfig{})
+
+// document-side embeddings (input_type "search_document", the default)
+docEmbs, err := co.EmbedMany(ctx, []string{"chunk one", "chunk two"})
+
+// query-side embedding (input_type "search_query")
+queryEmb, err := co.ForQueries().Embed(ctx, "What is the capital of France?")
+----
+
+`ForQueries()` returns a copy of the vectorizer that embeds with `input_type: "search_query"`. Setting `DataType` to `vectors.Int8` or `vectors.Uint8` requests the corresponding Cohere embedding types.
+
+== Mistral
+
+[source,go]
+----
+// APIKey defaults to MISTRAL_API_KEY; model defaults to "mistral-embed"
+mi, err := vectorize.NewMistralVectorizer(ctx, vectorize.MistralConfig{})
+----
+
+== VoyageAI
+
+[source,go]
+----
+// APIKey defaults to VOYAGE_API_KEY; model defaults to "voyage-3-large"
+vo, err := vectorize.NewVoyageAIVectorizer(ctx, vectorize.VoyageAIConfig{})
+
+// query-side embedding (input_type "query")
+queryEmb, err := vo.ForQueries().Embed(ctx, "search terms")
+----
+
+`InputType` may be set to `"document"` or `"query"` explicitly; empty omits the hint.
+
+== Ollama
+
+Run models locally through an https://ollama.com[Ollama^] server — no API key required:
+
+[source,go]
+----
+// Host defaults to OLLAMA_HOST, then http://localhost:11434
+ol, err := vectorize.NewOllamaVectorizer(ctx, vectorize.OllamaConfig{
+    Model: "nomic-embed-text", // the default; must already be pulled
+})
+----
+
+== Custom vectorizers
+
+Wrap any embedding function with `vectorize.Func` — the equivalent of Python's `CustomTextVectorizer`. Use this for providers without a built-in integration (e.g. VertexAI or Bedrock via their cloud SDKs):
+
+[source,go]
+----
+custom := &vectorize.Func{
+    EmbedFunc: func(ctx context.Context, text string) ([]float64, error) {
+        return callMyEmbeddingService(ctx, text)
+    },
+    Model:      "my-model", // default "custom"
+    Dimensions: 768,        // required
+}
+----
+
+== Local embeddings with the hf module
+
+The `hf` package runs Hugging Face sentence-transformer models *in-process* through ONNX Runtime — the Go equivalent of Python's `HFTextVectorizer`. No API key, no per-call cost, and data never leaves your machine.
+
+=== Installation
+
+`hf` is a *separate Go module* because it binds to ONNX Runtime via cgo; the core `redis-vl-golang` module stays pure Go:
+
+[source,shell,subs="attributes+"]
+----
+go get github.com/redis-developer/redis-vl-golang/extensions/vectorize/hf@v{redisvl-version}
+----
+
+It requires the https://onnxruntime.ai/docs/install/[onnxruntime shared library^] to be installed. Point the `ONNXRUNTIME_LIB_PATH` environment variable (or `Config.ONNXRuntimePath`) at `libonnxruntime.so` / `.dylib` / `onnxruntime.dll`; otherwise the platform's dynamic linker resolves the default library name.
+
+=== Usage
+
+[source,go]
+----
+import "github.com/redis-developer/redis-vl-golang/extensions/vectorize/hf"
+
+vec, err := hf.New(ctx, hf.Config{
+    Model: "sentence-transformers/all-MiniLM-L6-v2",
+})
+if err != nil {
+    log.Fatal(err)
+}
+defer vec.Close()
+
+emb, err := vec.Embed(ctx, "Hello, world!")
+----
+
+On first use, `hf.New` downloads the model files from the Hugging Face Hub and caches them locally (default `<user cache dir>/redisvl-go/models`); subsequent runs load from the cache with no network access. The default model is `sentence-transformers/all-mpnet-base-v2`, matching Python.
+
+=== Configuration
+
+[cols="1,3"]
+|===
+|Field |Description
+
+|`Model`
+|Hugging Face model id. The repository must contain a `tokenizer.json` and an ONNX export.
+
+|`ONNXFile`
+|ONNX export path inside the repository (default `onnx/model.onnx`). Point it at a quantized variant such as `onnx/model_quint8_avx2.onnx` for smaller downloads and faster CPU inference at a small accuracy cost.
+
+|`ONNXRuntimePath`
+|Path to the onnxruntime shared library (default: `ONNXRUNTIME_LIB_PATH` environment variable).
+
+|`CacheDir`
+|Model file cache location (default `<user cache dir>/redisvl-go/models`).
+
+|`Endpoint` / `Token`
+|Hugging Face Hub base URL (default `HF_ENDPOINT`, then `https://huggingface.co`) and access token for gated or private models (default `HF_TOKEN`).
+
+|`MaxSeqLength`
+|Override the model's token truncation length.
+
+|`BatchSize`
+|Batch size for `EmbedMany` (default 10).
+
+|`DataType`
+|Storage datatype (default `float32`).
+|===
+
+=== Model compatibility and parity
+
+The vectorizer works with any BERT-family sentence-transformers model that ships an ONNX export — including `redis/langcache-embed-v1`, the model used by the managed {url-langcache}[LangCache^] service. Pooling and normalization follow each model's sentence-transformers configuration (`modules.json` and `1_Pooling/config.json`), so embeddings match Python's `sentence-transformers` output.
+
+Embedding dimensions are probed at construction by embedding a fixed string, mirroring Python's `HFTextVectorizer`. Call `Close()` when finished to release the ONNX Runtime session.
+
+TIP: The same `hf` module also provides a local cross-encoder reranker — see xref:rerankers.adoc[Rerankers].
+
+== Next steps
+
+* xref:rerankers.adoc[Rerankers] — improve result relevance after retrieval
+* xref:getting-started.adoc[Getting Started] — load embeddings into an index
+* {url-pkg-go-dev}/extensions/vectorize[vectorize package reference^]

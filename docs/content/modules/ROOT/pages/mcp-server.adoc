@@ -1,0 +1,201 @@
+= MCP Server
+
+[.lead]
+RedisVL includes a built-in Model Context Protocol (MCP) server that exposes an existing Redis search index to AI agents and assistants through a small, stable tool contract: `search-records` and `upsert-records`.
+
+The https://modelcontextprotocol.io[Model Context Protocol^] is an open standard that lets AI applications (Claude Desktop, IDE assistants, agent frameworks) call external tools in a uniform way. The RedisVL MCP server, built on the official https://github.com/modelcontextprotocol/go-sdk[MCP Go SDK^], connects to one existing Redis index, embeds queries with a configured vectorizer, and lets any MCP client search — and optionally write to — that index.
+
+== Running the server
+
+The server runs via the xref:cli.adoc[rvl CLI] with a YAML configuration file:
+
+[source,shell]
+----
+rvl mcp --config mcp-config.yaml
+----
+
+By default it serves over *stdio*, which is what desktop MCP clients spawn. For remote clients, use the *Streamable HTTP* transport:
+
+[source,shell]
+----
+rvl mcp --config mcp-config.yaml --transport streamable-http --host 127.0.0.1 --port 8000
+----
+
+Pass `--read-only` when clients should only be able to search:
+
+[source,shell]
+----
+rvl mcp --config mcp-config.yaml --read-only
+----
+
+== Configuration
+
+A complete example (see `examples/mcp-config.yaml` in the {url-redisvl-golang}[repository^]):
+
+[source,yaml]
+----
+server:
+  redis_url: redis://localhost:6379
+
+index:
+  # Name of an existing Redis search index to expose
+  redis_name: movies
+  # Vectorizer used for query embedding and upsert embedding.
+  # Classes: openai, azure_openai, cohere, mistral, voyageai, ollama.
+  # API keys come from the standard environment variables.
+  vectorizer:
+    class: openai
+    model: text-embedding-3-small
+
+runtime:
+  # Vector field of the index (required when a vectorizer is set)
+  vector_field_name: embedding
+  # Record field embedded during upsert
+  default_embed_text_field: description
+  # Optional: restrict fields returned by search-records
+  # return_fields: [title, genre, rating]
+  default_limit: 10
+  max_limit: 100
+  max_upsert_records: 64
+  skip_embedding_if_present: true
+
+# Disable the upsert tool entirely (can also pass --read-only)
+read_only: false
+----
+
+[cols="2,3,1"]
+|===
+|Field |Description |Default
+
+|`server.redis_url`
+|Redis connection URL. Falls back to the `REDIS_URL` environment variable.
+|`redis://localhost:6379`
+
+|`index.redis_name`
+|Name of the existing index to expose (required).
+|—
+
+|`index.vectorizer.class`
+|Embedding provider: `openai`, `azure_openai`, `cohere`, `mistral`, `voyageai`, or `ollama`. Optional — without a vectorizer only text search is available.
+|—
+
+|`index.vectorizer.model`
+|Embedding model name.
+|provider default
+
+|`index.vectorizer.dims`
+|Skips the dimension probe when set.
+|auto-detected
+
+|`runtime.text_field_name`
+|Text field used for full-text search fallback (required when no vectorizer is configured).
+|—
+
+|`runtime.vector_field_name`
+|Vector field used for semantic search and upsert embedding (required when a vectorizer is configured).
+|—
+
+|`runtime.default_embed_text_field`
+|Record field embedded during upsert.
+|—
+
+|`runtime.default_limit`
+|Search result count when the client omits `limit`.
+|`10`
+
+|`runtime.max_limit`
+|Cap on the client-provided `limit`.
+|`100`
+
+|`runtime.max_upsert_records`
+|Cap on records per upsert call.
+|`64`
+
+|`runtime.skip_embedding_if_present`
+|Skip embedding records that already carry a vector field value.
+|`true`
+
+|`runtime.return_fields`
+|Restrict the fields returned by search.
+|all fields except the vector field
+
+|`runtime.dtype`
+|Vector datatype of the index field.
+|`float32`
+
+|`read_only`
+|Disable the upsert tool (equivalent to `--read-only`).
+|`false`
+|===
+
+== Tools
+
+=== search-records
+
+Runs a semantic search when a vectorizer is configured, otherwise a full-text search over `runtime.text_field_name`. Raw vector payloads are stripped from the returned records.
+
+[source,json]
+----
+{
+  "query": "space adventure with a robot sidekick",
+  "limit": 5,
+  "offset": 0,
+  "filter": "@genre:{scifi}"
+}
+----
+
+Only `query` is required. `filter` accepts a raw Redis query filter expression. The result is JSON with `count` and `records`.
+
+=== upsert-records
+
+Inserts or updates records in the index (disabled in read-only mode). When a vectorizer and `default_embed_text_field` are configured, text in that field is embedded automatically — unless the record already carries a vector value and `skip_embedding_if_present` is true.
+
+[source,json]
+----
+{
+  "records": [
+    {"title": "Alien Robot Friends", "genre": "scifi",
+     "description": "A space adventure with a robot sidekick"}
+  ],
+  "id_field": "title"
+}
+----
+
+The result is JSON with `upserted` (count) and `keys`.
+
+== Transports and security
+
+* *stdio* (default) — the client spawns the server as a subprocess; nothing is exposed on the network.
+* *streamable-http* — the server listens on `--host`/`--port` for remote MCP clients.
+
+WARNING: The Go server has no built-in authentication. Binding the HTTP transport to a non-loopback host is refused unless you pass `--allow-unauthenticated`, and a warning is printed even then: any client that can reach the address has full access. This differs from the Python server, which offers optional JWT auth — put the Go server behind a reverse proxy or network controls when exposing it. The Go port also does not support the SSE transport or schema overrides.
+
+== Using with Claude Desktop
+
+For stdio MCP servers, add an entry to `claude_desktop_config.json`:
+
+[source,json]
+----
+{
+  "mcpServers": {
+    "redisvl": {
+      "command": "/usr/local/bin/rvl",
+      "args": ["mcp", "--config", "/path/to/mcp-config.yaml", "--read-only"],
+      "env": {
+        "REDIS_URL": "redis://localhost:6379",
+        "OPENAI_API_KEY": "sk-..."
+      }
+    }
+  }
+}
+----
+
+Restart Claude Desktop and the `search-records` tool (and `upsert-records`, unless read-only) appears in the tools list.
+
+TIP: Start with `--read-only` and only enable upserts once you trust the client and have sized `max_upsert_records` appropriately.
+
+== See also
+
+* xref:cli.adoc[The rvl CLI] — all `rvl mcp` flags
+* xref:vectorizers.adoc[Vectorizers] — the embedding providers behind `index.vectorizer`
+* xref:getting-started.adoc[Getting Started] — creating the index the server exposes

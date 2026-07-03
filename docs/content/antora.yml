@@ -1,0 +1,20 @@
+name: redisvl
+title: RedisVL
+version: 'current'
+display_version: '0.1.0'
+start_page: ROOT:index.adoc
+nav:
+  - modules/ROOT/nav.adoc
+asciidoc:
+  attributes:
+    source-language: go
+    source-highlighter: highlight.js
+    redisvl-version: '0.1.0'
+    url-redisvl-golang: https://github.com/redis-developer/redis-vl-golang
+    url-redisvl-python: https://github.com/redis/redis-vl-python
+    url-redisvl-java: https://github.com/redis/redis-vl-java
+    url-pkg-go-dev: https://pkg.go.dev/github.com/redis-developer/redis-vl-golang
+    url-redis: https://redis.io/docs/latest/get-started/
+    url-redis-search: https://redis.io/docs/latest/develop/interact/search-and-query/
+    url-redis-json: https://redis.io/docs/latest/develop/data-types/json/
+    url-langcache: https://redis.io/docs/latest/develop/ai/langcache/

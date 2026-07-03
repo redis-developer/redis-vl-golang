@@ -1,0 +1,182 @@
+= Filter Expressions
+
+[.lead]
+The `filter` package provides a fluent builder for Redis Search filter expressions — the Go equivalent of the Python library's operator-overloading DSL. Filters attach to any query type to constrain results by tags, numbers, text, geography, or timestamps.
+
+Go has no operator overloading, so Python's `Tag("user") == "john"` becomes `filter.Tag("user").Eq("john")`. The rendered query strings are byte-identical to the Python library's output, so behavior and results match exactly.
+
+[source,go]
+----
+import "github.com/redis-developer/redis-vl-golang/filter"
+
+f := filter.Tag("brand").Eq("nike").And(filter.Num("price").Lt(100))
+f.String() // (@brand:{nike} @price:[-inf (100])
+----
+
+== Tag filters
+
+Tag filters apply to `tag` fields — exact-match categorical values.
+
+[source,go]
+----
+filter.Tag("genre").Eq("comedy")            // @genre:{comedy}
+filter.Tag("genre").Eq("comedy", "drama")   // @genre:{comedy|drama}  (match any)
+filter.Tag("genre").Ne("horror")            // (-@genre:{horror})
+filter.Tag("topic").Like("tech*")           // @topic:{tech*}  (wildcards preserved)
+filter.Tag("genre").IsMissing()             // ismissing(@genre)
+----
+
+`Eq` and `Ne` accept multiple values (logical OR within the tag set). Special characters are escaped automatically; `Like` preserves `*` and `?` wildcards.
+
+== Numeric filters
+
+Numeric filters apply to `numeric` fields.
+
+[source,go]
+----
+filter.Num("age").Eq(42)          // @age:[42 42]
+filter.Num("age").Ne(42)          // (-@age:[42 42])
+filter.Num("age").Gt(18)          // @age:[(18 +inf]
+filter.Num("age").Ge(18)          // @age:[18 +inf]
+filter.Num("age").Lt(65)          // @age:[-inf (65]
+filter.Num("age").Le(65)          // @age:[-inf 65]
+
+filter.Num("age").Between(18, 65, filter.Both)  // @age:[18 65]
+filter.Num("age").IsMissing()
+----
+
+`Between` takes an `Inclusive` mode: `filter.Both`, `filter.Neither`, `filter.Left`, or `filter.Right`.
+
+== Text filters
+
+Text filters apply to `text` fields.
+
+[source,go]
+----
+filter.Text("job").Eq("engineer")           // @job:("engineer")   exact match
+filter.Text("job").Ne("engineer")           // (-@job:"engineer")
+filter.Text("job").Like("engine*")          // @job:(engine*)      wildcard
+filter.Text("job").Like("%%engine%%")       // fuzzy match
+filter.Text("job").Like("engineer|doctor")  // match either term
+filter.Text("job").IsMissing()
+----
+
+`Like` is the port of Python's `Text % value` operator — a flexible full-text match supporting wildcards, fuzzy matching, and combinations.
+
+== Geographic filters
+
+Geo filters apply to `geo` fields and match documents within (or outside) a radius:
+
+[source,go]
+----
+sf := filter.GeoRadius{
+    Longitude: -122.4194,
+    Latitude:  37.7749,
+    Radius:    10,
+    Unit:      "km", // "m", "km", "mi", or "ft"
+}
+
+filter.Geo("location").Within(sf)     // @location:[-122.4194 37.7749 10 km]
+filter.Geo("location").NotWithin(sf)  // (-@location:[-122.4194 37.7749 10 km])
+----
+
+An invalid unit does not panic: the error is deferred and surfaced when the query executes (see <<deferred-errors,Deferred errors>>).
+
+== Timestamp filters
+
+Timestamp filters apply to `numeric` fields that store Unix timestamps. All values are converted to Unix seconds in UTC.
+
+[source,go]
+----
+import "time"
+
+cutoff := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+
+filter.Timestamp("last_updated").Gt(cutoff)   // after
+filter.Timestamp("last_updated").Le(cutoff)   // at or before
+filter.Timestamp("last_updated").Between(start, end, filter.Both)
+
+// any time within a calendar day (UTC) — port of Python's Timestamp == date
+filter.Timestamp("last_updated").OnDate(cutoff)
+----
+
+`Eq`, `Ne`, `Ge`, `Lt`, and `IsMissing` are also available.
+
+== Combining filters
+
+`And` and `Or` combine any expressions, and can be chained or nested arbitrarily:
+
+[source,go]
+----
+f := filter.Tag("credit_score").Eq("high").
+    And(filter.Num("age").Between(18, 100, filter.Both)).
+    Or(filter.Tag("user").Eq("admin"))
+
+// ((@credit_score:{high} @age:[18 100]) | @user:{admin})
+----
+
+`filter.All()` returns the match-everything expression (`*`); combining anything with `All()` collapses cleanly, which makes it a convenient neutral element for conditionally built filters:
+
+[source,go]
+----
+f := filter.All()
+if genre != "" {
+    f = f.And(filter.Tag("genre").Eq(genre))
+}
+if maxPrice > 0 {
+    f = f.And(filter.Num("price").Le(maxPrice))
+}
+----
+
+== Escape hatch: Raw
+
+`filter.Raw` wraps any raw Redis Search query string as an expression, for constructs the builders do not cover:
+
+[source,go]
+----
+f := filter.Raw("@title:(hello world)").And(filter.Num("year").Ge(2020))
+----
+
+== Attaching filters to queries
+
+Every query type that supports filtering exposes a `Filter` method:
+
+[source,go]
+----
+import (
+    "github.com/redis-developer/redis-vl-golang/filter"
+    "github.com/redis-developer/redis-vl-golang/query"
+)
+
+combined := filter.Tag("genre").Eq("comedy", "drama").
+    And(filter.Num("rating").Ge(7)).
+    And(filter.Timestamp("release_date").Gt(cutoff))
+
+q := query.NewVectorQuery("embedding", vec).
+    Filter(combined).
+    NumResults(10).
+    ReturnFields("title", "rating")
+
+results, err := index.Query(ctx, q)
+----
+
+This restricts the KNN search to documents matching the filter before ranking by vector distance — Redis executes the filter and the vector search together, server-side.
+
+== Deferred errors
+
+Building an expression never returns an error, keeping filter construction chainable. Invalid input (such as a bad geo unit) is recorded on the expression and surfaced when the query runs. You can also check eagerly:
+
+[source,go]
+----
+f := filter.Geo("location").Within(filter.GeoRadius{Radius: 10, Unit: "parsecs"})
+if err := f.Err(); err != nil {
+    // geo unit must be one of m, km, mi, ft; got "parsecs"
+}
+----
+
+TIP: If you are migrating from Python, the mapping is mechanical: `==` → `Eq`, `!=` → `Ne`, `>` → `Gt`, `>=` → `Ge`, `<` → `Lt`, `<=` → `Le`, `%` → `Like`, `&` → `And`, `|` → `Or`. Since the rendered query strings are identical, existing Python filter logic ports one-to-one.
+
+== Next steps
+
+* xref:queries.adoc[Querying with RedisVL] — attach filters to vector, text, and hybrid queries
+* {url-redis-search}[Redis query syntax reference^]

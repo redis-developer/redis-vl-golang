@@ -1,0 +1,104 @@
+= Benchmarks
+
+[.lead]
+The repository ships a benchmark harness that runs identical workloads through RedisVL for Golang and the Python {url-redisvl-python}[RedisVL library^] against the same Redis instance, so the two clients can be compared head to head.
+
+== What is measured
+
+The vector search itself executes *inside Redis* and is identical for both clients. What the benchmarks measure is the *client-side* cost each library adds on top:
+
+* query building and vector serialization
+* reply parsing and validation
+* concurrency behavior (goroutines vs Python threads under the GIL)
+
+Two mirror-image programs — `benchmarks/gobench/main.go` (Go) and `benchmarks/pybench/bench.py` (Python) — use an identical schema (text + tag + numeric + 384-dim float32 HNSW/cosine vector, hash storage) and dataset shape (seeded random unit vectors; vector generation is excluded from all timings). Half the queries carry a tag filter, half are pure KNN, with k=10.
+
+== Workloads
+
+[cols="1,3"]
+|===
+|Workload |Description
+
+|*load*
+|Bulk-load 10,000 documents in pipelined batches of 500; reports docs/sec. Both programs wait for `percent_indexed == 1` before querying.
+
+|*sequential*
+|500 single-threaded queries; reports mean/p50/p95/p99 latency. Dominated by Redis plus one network round trip — differences here are per-call client overhead.
+
+|*concurrent*
+|3,200 queries across 32 workers (goroutines vs threads); reports aggregate QPS and latency percentiles. This is where the GIL vs goroutines difference shows.
+|===
+
+== Running the benchmarks
+
+A running Redis 8 instance is required:
+
+[source,shell]
+----
+docker run -d -p 6379:6379 redis:8.8.0
+----
+
+Then, from the repository root:
+
+[source,shell]
+----
+# Go
+make bench-go
+
+# Python
+make bench-py-deps   # one-time: creates benchmarks/pybench/.venv and installs redisvl
+make bench-py
+----
+
+Each program uses its own index name (`bench-go` / `bench-py`) and cleans up after itself. Workload parameters can be tuned with `-docs/--docs`, `-dims/--dims`, `-queries/--queries`, `-concurrency/--concurrency`, `-conc-queries/--conc-queries`, `-k/--k`, and the `REDIS_URL` environment variable. Each run prints a human-readable summary plus one JSON line with all metrics, so runs can be collected and diffed programmatically.
+
+== Sample results
+
+The numbers below were measured on 2026-07-03 with the default workload settings (10,000 docs, 384 dims, 32 workers) against a local Redis 8.8.0 container on an Apple Silicon machine, with client and server on the same host.
+
+WARNING: These are illustrative single-machine numbers, not performance guarantees. Absolute figures depend heavily on hardware, Redis configuration, network topology, and dataset shape — run the harness in your own environment for numbers that matter to you.
+
+[cols="2,1,1,1"]
+|===
+|Metric |Go |Python |Ratio
+
+|Load throughput (docs/s)
+|28,050
+|24,139
+|1.16x
+
+|Sequential query, mean latency (ms)
+|0.331
+|0.396
+|0.84x
+
+|Sequential query, p99 latency (ms)
+|0.542
+|0.708
+|0.77x
+
+|Concurrent throughput (QPS, 32 workers)
+|8,902
+|5,073
+|1.75x
+
+|Concurrent p99 latency (ms)
+|7.6
+|25.0
+|0.30x
+|===
+
+The pattern is what the architecture predicts: in the single-threaded phases both clients are dominated by Redis and the network round trip, so the gap is modest. Under concurrency, goroutines schedule freely across cores while Python threads serialize query building and reply parsing on the GIL, so the Go client sustains higher aggregate throughput with a much tighter tail.
+
+== Fair-comparison notes
+
+* Run both clients against the same Redis instance and the same machine, ideally several times, discarding the first run (connection pool warmup, OS caches).
+* Redis itself is often the bottleneck in the concurrent phase. If both implementations converge on the same QPS, Redis is saturated — lower `--concurrency`, use a larger `--docs` to shift work to the clients, or run Redis on a separate machine to include network serialization in the comparison.
+* The Python benchmark uses threads. redis-py releases the GIL on socket I/O, but reply parsing and query building still serialize on the GIL. This is representative of a typical sync deployment; an asyncio variant would change the shape but not the GIL constraint.
+* Vectors are distribution-identical across the two programs (seeded uniform, unit-normalized) but not bit-identical. Index size, HNSW parameters, and result counts are the same, which is what matters for performance.
+
+== Next steps
+
+* xref:getting-started.adoc[Getting Started] — build your first index
+* xref:queries.adoc[Querying with RedisVL] — the query types exercised by the harness
+* {url-redisvl-golang}/tree/main/benchmarks[Benchmark source on GitHub^]
