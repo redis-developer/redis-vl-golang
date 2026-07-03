@@ -6,11 +6,10 @@
 
 <div align="center">
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/redis-developer/redis-vl-golang.svg)](https://pkg.go.dev/github.com/redis-developer/redis-vl-golang)
 [![CI](https://github.com/redis-developer/redis-vl-golang/actions/workflows/ci.yml/badge.svg)](https://github.com/redis-developer/redis-vl-golang/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![Language](https://img.shields.io/badge/go-%3E%3D1.25-00ADD8?logo=go)
-
-**[Python Version](https://github.com/redis/redis-vl-python)** • **[Documentation](https://docs.redisvl.com)** • **[Recipes](https://github.com/redis-developer/redis-ai-resources)**
 
 </div>
 
