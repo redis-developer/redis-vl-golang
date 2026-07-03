@@ -134,7 +134,7 @@ func (m *onnxModel) buildInputs(in *batchInput) ([]ort.Value, func(), error) {
 	destroy := func() {
 		for _, t := range inputs {
 			if t != nil {
-				t.Destroy()
+				_ = t.Destroy()
 			}
 		}
 	}
@@ -176,7 +176,7 @@ func (m *onnxModel) runRaw(in *batchInput) (*ort.Tensor[float32], error) {
 	out, ok := outputs[0].(*ort.Tensor[float32])
 	if !ok {
 		if outputs[0] != nil {
-			outputs[0].Destroy()
+			_ = outputs[0].Destroy()
 		}
 		return nil, fmt.Errorf("hf: model output %q is not a float32 tensor", m.outputName)
 	}
@@ -190,7 +190,7 @@ func (m *onnxModel) run(in *batchInput, settings *modelSettings) ([][]float64, e
 	if err != nil {
 		return nil, err
 	}
-	defer out.Destroy()
+	defer func() { _ = out.Destroy() }()
 
 	outShape := out.GetShape()
 	data := out.GetData()
@@ -239,7 +239,7 @@ func (m *onnxModel) runLogits(in *batchInput) ([]float64, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer out.Destroy()
+	defer func() { _ = out.Destroy() }()
 
 	outShape := out.GetShape()
 	data := out.GetData()

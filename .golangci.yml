@@ -15,12 +15,20 @@ linters:
     revive:
       rules:
         - name: exported
+          # CacheHit et al. keep their Python-parity names even when they
+          # repeat the package name
+          arguments: ["disableStutteringCheck"]
         - name: error-strings
           # provider names (OpenAI, Cohere...) legitimately start error strings
           disabled: true
   exclusions:
     rules:
       - path: _test\.go
+        linters:
+          - errcheck
+      # main packages (CLI, examples, benchmarks): deferred Close errors
+      # on process exit are intentionally ignored
+      - path: ^(cmd|examples|benchmarks)/
         linters:
           - errcheck
 

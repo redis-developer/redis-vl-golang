@@ -64,6 +64,7 @@ type RouteMatch struct {
 // AggregationMethod combines distances of multiple references per route.
 type AggregationMethod string
 
+// Supported aggregation methods.
 const (
 	Avg AggregationMethod = "avg"
 	Min AggregationMethod = "min"

@@ -140,7 +140,7 @@ func (h *hubClient) fetchFile(ctx context.Context, model, remote string) (string
 	if err != nil {
 		return "", fmt.Errorf("hf: downloading %s: %w", url, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusNotFound {
 		return "", &notFoundError{url: url}
@@ -162,16 +162,16 @@ func (h *hubClient) fetchFile(ctx context.Context, model, remote string) (string
 	}
 	tmpName := tmp.Name()
 	if _, err := io.Copy(tmp, resp.Body); err != nil {
-		tmp.Close()
-		os.Remove(tmpName)
+		_ = tmp.Close()
+		_ = os.Remove(tmpName)
 		return "", fmt.Errorf("hf: downloading %s: %w", url, err)
 	}
 	if err := tmp.Close(); err != nil {
-		os.Remove(tmpName)
+		_ = os.Remove(tmpName)
 		return "", err
 	}
 	if err := os.Rename(tmpName, local); err != nil {
-		os.Remove(tmpName)
+		_ = os.Remove(tmpName)
 		return "", err
 	}
 	return local, nil

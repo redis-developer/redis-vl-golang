@@ -1,0 +1,52 @@
+name: Bug report
+description: Something in RedisVL for Golang doesn't behave as documented
+labels: [bug]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What happened, and what did you expect to happen instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: >
+        The smallest Go snippet (schema + code) that reproduces the problem.
+      render: go
+    validations:
+      required: true
+
+  - type: input
+    id: library-version
+    attributes:
+      label: RedisVL for Golang version
+      placeholder: v0.1.0
+    validations:
+      required: true
+
+  - type: input
+    id: redis-version
+    attributes:
+      label: Redis server version
+      description: Output of `redis-server --version` (or the image tag).
+      placeholder: redis:8.8.0
+    validations:
+      required: true
+
+  - type: input
+    id: go-version
+    attributes:
+      label: Go version and OS
+      placeholder: go1.25.0 darwin/arm64
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error output / logs
+      render: text

@@ -125,7 +125,7 @@ func NewCrossEncoder(ctx context.Context, cfg CrossEncoderConfig) (*CrossEncoder
 
 	// Probe with one pair to fail fast on a non-classification export.
 	if _, err := ce.scorePairs(ctx, "probe", []string{"probe"}); err != nil {
-		ce.Close()
+		_ = ce.Close()
 		return nil, fmt.Errorf("hf: probing cross-encoder: %w", err)
 	}
 	return ce, nil

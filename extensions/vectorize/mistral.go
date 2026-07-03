@@ -47,7 +47,7 @@ func NewMistralVectorizer(ctx context.Context, cfg MistralConfig) (*MistralVecto
 		cfg.APIKey = os.Getenv("MISTRAL_API_KEY")
 	}
 	if cfg.APIKey == "" {
-		return nil, fmt.Errorf("Mistral API key is required: provide MistralConfig.APIKey or set MISTRAL_API_KEY")
+		return nil, fmt.Errorf("missing Mistral API key: provide MistralConfig.APIKey or set MISTRAL_API_KEY")
 	}
 	if cfg.Model == "" {
 		cfg.Model = "mistral-embed"

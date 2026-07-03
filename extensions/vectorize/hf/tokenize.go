@@ -14,7 +14,7 @@ func loadTokenizer(path string) (*tokenizer.Tokenizer, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	tk, err := pretrained.FromReader(f)
 	if err != nil {
 		return nil, fmt.Errorf("hf: loading tokenizer.json: %w", err)

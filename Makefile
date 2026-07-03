@@ -5,13 +5,16 @@ REDIS_URL ?= redis://localhost:6379
 # or missing pip shims on PATH.
 PYTHON ?= $(shell command -v python3 >/dev/null 2>&1 && echo python3 || echo python)
 
-.PHONY: deps check test test-integration fmt vet lint build-rvl work deps-hf vet-hf test-hf test-hf-live docs-deps docs-build docs-serve bench-go bench-py bench-py-deps
+.PHONY: deps check test test-integration fmt vet lint lint-hf build-rvl work deps-hf vet-hf test-hf test-hf-live docs-deps docs-build docs-serve bench-go bench-py bench-py-deps
 
 build-rvl:
 	go build -o bin/rvl ./cmd/rvl
 
 lint:
 	golangci-lint run
+
+lint-hf:
+	cd extensions/vectorize/hf && golangci-lint run
 
 deps:
 	go mod tidy

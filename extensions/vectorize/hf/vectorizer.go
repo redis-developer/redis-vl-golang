@@ -125,7 +125,7 @@ func New(ctx context.Context, cfg Config) (*TextVectorizer, error) {
 	// HFTextVectorizer._set_model_dims embeds "dimension check").
 	probe, err := v.embedBatch(ctx, []string{"dimension check"})
 	if err != nil {
-		v.Close()
+		_ = v.Close()
 		return nil, fmt.Errorf("hf: probing embedding dimensions: %w", err)
 	}
 	v.dims = len(probe[0])

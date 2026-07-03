@@ -1,0 +1,5 @@
+# Default owners for everything in the repository.
+# TODO: replace with the maintainers' GitHub handles (or a
+# redis-developer team) — CODEOWNERS entries must be users/teams
+# with write access.
+# * @your-github-handle

@@ -1,0 +1,34 @@
+version: 2
+updates:
+  # Core Go module
+  - package-ecosystem: gomod
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      go-dependencies:
+        patterns: ["*"]
+
+  # HF vectorizer module (separate go.mod)
+  - package-ecosystem: gomod
+    directory: "/extensions/vectorize/hf"
+    schedule:
+      interval: weekly
+    groups:
+      go-dependencies:
+        patterns: ["*"]
+
+  # GitHub Actions used by the workflows
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+
+  # Antora toolchain for the docs site
+  - package-ecosystem: npm
+    directory: "/docs"
+    schedule:
+      interval: weekly
+    groups:
+      antora:
+        patterns: ["*"]

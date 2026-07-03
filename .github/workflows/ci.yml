@@ -34,7 +34,50 @@ jobs:
       # redis:8.8.0 testcontainer automatically (Docker is preinstalled
       # on ubuntu-latest runners).
       - name: Test (unit + integration)
-        run: go test ./...
+        run: go test -coverprofile=coverage.out ./...
+
+      - name: Coverage summary
+        run: |
+          {
+            echo "## Test coverage"
+            echo '```'
+            go tool cover -func=coverage.out | tail -1
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload coverage profile
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.out
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.x"
+          cache-dependency-path: |
+            go.sum
+            extensions/vectorize/hf/go.sum
+
+      # Lint the hf module against this checkout's core module.
+      - name: Set up multi-module workspace
+        run: go work init . ./extensions/vectorize/hf
+
+      - name: Lint core module
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: latest
+
+      - name: Lint hf module
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: latest
+          working-directory: extensions/vectorize/hf
 
   hf:
     name: HF module (cgo)

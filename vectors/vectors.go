@@ -13,6 +13,8 @@ import (
 // DataType is the numeric datatype of a vector field.
 type DataType string
 
+// Supported vector datatypes, matching the DATATYPE values accepted by
+// Redis vector fields.
 const (
 	BFloat16 DataType = "bfloat16"
 	Float16  DataType = "float16"
@@ -206,8 +208,8 @@ func Float16ToFloat32(h uint16) float32 {
 	exp := uint32(h >> 10 & 0x1f)
 	mant := uint32(h & 0x3ff)
 
-	switch {
-	case exp == 0:
+	switch exp {
+	case 0:
 		if mant == 0 {
 			return math.Float32frombits(sign) // +/- zero
 		}
@@ -219,7 +221,7 @@ func Float16ToFloat32(h uint16) float32 {
 		}
 		mant &= 0x3ff
 		return math.Float32frombits(sign | (113-e)<<23 | mant<<13)
-	case exp == 0x1f: // Inf or NaN
+	case 0x1f: // Inf or NaN
 		return math.Float32frombits(sign | 0x7f800000 | mant<<13)
 	}
 	return math.Float32frombits(sign | (exp+112)<<23 | mant<<13)

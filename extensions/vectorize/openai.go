@@ -166,19 +166,19 @@ func NewAzureOpenAIVectorizer(ctx context.Context, cfg AzureOpenAIConfig) (*Azur
 		cfg.APIKey = os.Getenv("AZURE_OPENAI_API_KEY")
 	}
 	if cfg.APIKey == "" {
-		return nil, fmt.Errorf("Azure OpenAI API key is required: provide AzureOpenAIConfig.APIKey or set AZURE_OPENAI_API_KEY")
+		return nil, fmt.Errorf("missing Azure OpenAI API key: provide AzureOpenAIConfig.APIKey or set AZURE_OPENAI_API_KEY")
 	}
 	if cfg.Endpoint == "" {
 		cfg.Endpoint = os.Getenv("AZURE_OPENAI_ENDPOINT")
 	}
 	if cfg.Endpoint == "" {
-		return nil, fmt.Errorf("Azure OpenAI endpoint is required: provide AzureOpenAIConfig.Endpoint or set AZURE_OPENAI_ENDPOINT")
+		return nil, fmt.Errorf("missing Azure OpenAI endpoint: provide AzureOpenAIConfig.Endpoint or set AZURE_OPENAI_ENDPOINT")
 	}
 	if cfg.APIVersion == "" {
 		cfg.APIVersion = os.Getenv("OPENAI_API_VERSION")
 	}
 	if cfg.APIVersion == "" {
-		return nil, fmt.Errorf("Azure OpenAI API version is required: provide AzureOpenAIConfig.APIVersion or set OPENAI_API_VERSION")
+		return nil, fmt.Errorf("missing Azure OpenAI API version: provide AzureOpenAIConfig.APIVersion or set OPENAI_API_VERSION")
 	}
 	if cfg.Model == "" {
 		cfg.Model = "text-embedding-ada-002"

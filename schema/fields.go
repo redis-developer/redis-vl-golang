@@ -10,6 +10,7 @@ import (
 // FieldType is the kind of a search field.
 type FieldType string
 
+// Supported field types.
 const (
 	TypeTag     FieldType = "tag"
 	TypeText    FieldType = "text"
@@ -21,6 +22,7 @@ const (
 // DistanceMetric is the similarity metric for vector fields.
 type DistanceMetric string
 
+// Supported distance metrics.
 const (
 	Cosine DistanceMetric = "COSINE"
 	L2     DistanceMetric = "L2"
@@ -30,6 +32,7 @@ const (
 // Algorithm is the vector indexing algorithm.
 type Algorithm string
 
+// Supported vector indexing algorithms.
 const (
 	Flat      Algorithm = "FLAT"
 	HNSW      Algorithm = "HNSW"
@@ -39,6 +42,7 @@ const (
 // Compression is the SVS-VAMANA vector compression type.
 type Compression string
 
+// Supported SVS-VAMANA compression types.
 const (
 	LVQ4       Compression = "LVQ4"
 	LVQ4x4     Compression = "LVQ4x4"
@@ -235,7 +239,7 @@ func NewVectorField(name string, attrs VectorAttrs) (Field, error) {
 	return Field{Name: name, Type: TypeVector, Vector: &attrs}, nil
 }
 
-// intPtr is a convenience for building VectorAttrs literals.
+// IntPtr is a convenience for building VectorAttrs literals.
 func IntPtr(v int) *int { return &v }
 
 // FloatPtr is a convenience for building VectorAttrs literals.

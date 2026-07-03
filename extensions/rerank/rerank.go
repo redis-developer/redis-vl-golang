@@ -70,7 +70,7 @@ func postJSON(ctx context.Context, client *http.Client, maxRetries int, url stri
 			continue
 		}
 		respBody, err := io.ReadAll(resp.Body)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		if err != nil {
 			lastErr = err
 			continue

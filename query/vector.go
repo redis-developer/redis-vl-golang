@@ -11,6 +11,7 @@ import (
 // HybridPolicy controls how filters are applied during vector search.
 type HybridPolicy string
 
+// Supported hybrid filter policies.
 const (
 	Batches HybridPolicy = "BATCHES"
 	AdhocBF HybridPolicy = "ADHOC_BF"

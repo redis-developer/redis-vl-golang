@@ -11,6 +11,7 @@ import (
 // StorageType is how documents are stored in Redis.
 type StorageType string
 
+// Supported storage types.
 const (
 	Hash StorageType = "hash"
 	JSON StorageType = "json"

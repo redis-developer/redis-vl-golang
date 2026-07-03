@@ -74,7 +74,7 @@ func (h *httpDoer) postJSON(ctx context.Context, url string, headers map[string]
 			continue // network error: retry
 		}
 		respBody, err := io.ReadAll(resp.Body)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		if err != nil {
 			lastErr = err
 			continue

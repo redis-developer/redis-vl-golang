@@ -361,7 +361,7 @@ func (l *LangCache) do(ctx context.Context, method, url string, payload, out any
 			continue
 		}
 		respBody, err := io.ReadAll(resp.Body)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		if err != nil {
 			lastErr = err
 			continue

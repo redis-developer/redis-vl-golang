@@ -17,6 +17,7 @@ import (
 // Inclusive controls which sides of a Between range are inclusive.
 type Inclusive string
 
+// Inclusiveness options for Between ranges.
 const (
 	Both    Inclusive = "both"
 	Neither Inclusive = "neither"
