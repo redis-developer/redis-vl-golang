@@ -5,14 +5,42 @@ RedisVL ships with `rvl`, a purpose-built command-line tool for creating, inspec
 
 == Installation
 
-Install the latest release directly with `go install`:
+=== Prebuilt binaries
+
+Every {url-redisvl-golang}/releases[release^] ships standalone `rvl`
+binaries for macOS, Linux, and Windows (amd64 and arm64) — no Go
+toolchain required. Archives are named `rvl_<version>_<os>_<arch>`.
+For example, on macOS (Apple Silicon):
+
+[source,shell,subs="attributes+"]
+----
+VERSION={redisvl-version}
+curl -sSfLO "https://github.com/redis-developer/redis-vl-golang/releases/download/v${VERSION}/rvl_${VERSION}_darwin_arm64.tar.gz"
+tar -xzf "rvl_${VERSION}_darwin_arm64.tar.gz" rvl
+sudo mv rvl /usr/local/bin/
+rvl version
+----
+
+Substitute `linux_amd64`, `linux_arm64`, or `darwin_amd64` as
+appropriate; Windows users download the `.zip` and place `rvl.exe` on
+their `PATH`. Verify downloads against the release's `checksums.txt`:
+
+[source,shell,subs="attributes+"]
+----
+curl -sSfLO "https://github.com/redis-developer/redis-vl-golang/releases/download/v${VERSION}/checksums.txt"
+shasum -a 256 -c checksums.txt --ignore-missing
+----
+
+=== With the Go toolchain
 
 [source,shell]
 ----
 go install github.com/redis-developer/redis-vl-golang/cmd/rvl@latest
 ----
 
-Or build from a checkout of the {url-redisvl-golang}[repository^]:
+=== From source
+
+Build from a checkout of the {url-redisvl-golang}[repository^]:
 
 [source,shell]
 ----

@@ -489,18 +489,38 @@ match, err := sr.Route(ctx, "Hi, good morning")
 
 Create, destroy, and manage Redis index configurations from a purpose-built CLI interface: `rvl`.
 
-Install it any of three ways:
+### Installing rvl
+
+**Prebuilt binaries (no Go required).** Every [release](https://github.com/redis-developer/redis-vl-golang/releases) ships archives for macOS, Linux, and Windows on amd64 and arm64, named `rvl_<version>_<os>_<arch>`. For example, on macOS (Apple Silicon):
 
 ```bash
-# Prebuilt binary (no Go required): download for your platform from
-# https://github.com/redis-developer/redis-vl-golang/releases
+VERSION=0.1.1
+curl -sSfLO "https://github.com/redis-developer/redis-vl-golang/releases/download/v${VERSION}/rvl_${VERSION}_darwin_arm64.tar.gz"
+tar -xzf "rvl_${VERSION}_darwin_arm64.tar.gz" rvl
+sudo mv rvl /usr/local/bin/
+rvl version
+```
 
-# With the Go toolchain:
+On Linux, substitute `linux_amd64` (or `linux_arm64`); on Intel Macs, `darwin_amd64`. Windows users download the `.zip` and place `rvl.exe` on their `PATH`. Each release includes a `checksums.txt` to verify downloads:
+
+```bash
+curl -sSfLO "https://github.com/redis-developer/redis-vl-golang/releases/download/v${VERSION}/checksums.txt"
+shasum -a 256 -c checksums.txt --ignore-missing
+```
+
+**With the Go toolchain:**
+
+```bash
 go install github.com/redis-developer/redis-vl-golang/cmd/rvl@latest
+```
 
-# From a checkout:
+**From a checkout:**
+
+```bash
 make build-rvl   # builds bin/rvl
 ```
+
+### Using rvl
 
 ```bash
 $ rvl --help
@@ -567,14 +587,6 @@ This is a feature-parity port of the Python library's core, extensions, provider
 - **Not included**: the VertexAI and Bedrock providers (require cloud SDKs; use `vectorize.Func` to wrap them). `SQLQuery` is not part of the port scope: in Python it is a thin adapter over the separate [sql-redis](https://pypi.org/project/sql-redis/) package, which has no Go equivalent yet — an adapter can be added if one appears. The MCP server is included but omits JWT auth, SSE transport, and schema overrides.
 - **bfloat16/float16** vector encodings are implemented natively (no `ml_dtypes` needed).
 - Operations return errors — nothing panics. Missing indexes can be detected with `errors.Is(err, redisvl.ErrIndexNotFound)`.
-
-## 😁 Helpful Links
-
-For additional help, check out the following resources:
-
-- [Getting Started Guide](https://docs.redisvl.com/en/stable/user_guide/01_getting_started.html) *(Python docs; concepts apply directly)*
-- [API Reference](https://docs.redisvl.com/en/stable/api/index.html)
-- [Redis AI Recipes](https://github.com/redis-developer/redis-ai-resources)
 
 ## 🫱🏼‍🫲🏽 Contributing
 
