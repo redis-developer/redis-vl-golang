@@ -69,12 +69,12 @@ jobs:
         run: go work init . ./extensions/vectorize/hf
 
       - name: Lint core module
-        uses: golangci/golangci-lint-action@v8
+        uses: golangci/golangci-lint-action@v9
         with:
           version: latest
 
       - name: Lint hf module
-        uses: golangci/golangci-lint-action@v8
+        uses: golangci/golangci-lint-action@v9
         with:
           version: latest
           working-directory: extensions/vectorize/hf
