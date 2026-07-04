@@ -9,6 +9,8 @@ Release tags cover both Go modules in this repository: the core module
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-07-03
+
 ### Added
 
 - MCP server: JWT bearer authentication for HTTP transports (JWKS or
@@ -17,6 +19,8 @@ Release tags cover both Go modules in this repository: the core module
 - MCP server: SSE transport (`--transport sse`)
 - MCP server: field-level `schema_overrides` to patch attrs missing from
   `FT.INFO` inspection, with startup validation of runtime field mappings
+- Transport/auth boundary tests (401 + `WWW-Authenticate` challenges,
+  bind policy matrix) and an expanded SECURITY.md
 
 ### Changed
 
@@ -74,6 +78,7 @@ The first release of RedisVL for Golang, ported from
 - Go-vs-Python benchmark harness (`benchmarks/`)
 - Antora documentation site published to GitHub Pages
 
-[Unreleased]: https://github.com/redis-developer/redis-vl-golang/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/redis-developer/redis-vl-golang/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/redis-developer/redis-vl-golang/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/redis-developer/redis-vl-golang/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/redis-developer/redis-vl-golang/releases/tag/v0.1.0
