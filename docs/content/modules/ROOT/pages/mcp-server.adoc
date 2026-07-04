@@ -165,10 +165,74 @@ The result is JSON with `upserted` (count) and `keys`.
 
 == Transports and security
 
-* *stdio* (default) — the client spawns the server as a subprocess; nothing is exposed on the network.
+* *stdio* (default) — the client spawns the server as a subprocess; nothing is exposed on the network. Never authenticated.
+* *sse* — the server listens on `--host`/`--port` using the HTTP+SSE transport (for clients on the older protocol revision).
 * *streamable-http* — the server listens on `--host`/`--port` for remote MCP clients.
 
-WARNING: The Go server has no built-in authentication. Binding the HTTP transport to a non-loopback host is refused unless you pass `--allow-unauthenticated`, and a warning is printed even then: any client that can reach the address has full access. This differs from the Python server, which offers optional JWT auth — put the Go server behind a reverse proxy or network controls when exposing it. The Go port also does not support the SSE transport or schema overrides.
+WARNING: Without configured authentication, binding an HTTP transport to a non-loopback host is refused unless you pass `--allow-unauthenticated`, and a warning is printed even then: any client that can reach the address has full access.
+
+=== JWT authentication
+
+The HTTP transports support JWT bearer authentication, configured in the
+`server.auth` block (or entirely via `REDISVL_MCP_AUTH_*` environment
+variables, which take precedence — useful for injecting settings without
+touching the YAML):
+
+[source,yaml]
+----
+server:
+  redis_url: redis://localhost:6379
+  auth:
+    type: jwt
+    # exactly one of jwks_uri or public_key (PEM) is required
+    jwks_uri: https://your-idp.example.com/.well-known/jwks.json
+    issuer: https://your-idp.example.com/     # required
+    audience: redisvl-mcp                     # required
+    # algorithm: RS256                        # optional; restricts accepted alg
+    required_scopes: [mcp:access]             # required on every token
+    read_scope: search:read                   # gates search-records
+    write_scope: search:write                 # gates upsert-records
+    # authorization_claim: scp                # or e.g. "roles" for Azure AD
+----
+
+Tokens are validated for signature, issuer, audience, and the presence of
+required claims (defaults `exp` and `iat`, so tokens that would never
+expire are rejected). Symmetric algorithms (`HS*`) are not supported.
+Requests without a valid token receive `401` with a `WWW-Authenticate`
+challenge; tokens missing a configured read/write scope have the
+corresponding tool call rejected. With auth configured, non-loopback binds
+are permitted without `--allow-unauthenticated`.
+
+Environment overrides: `REDISVL_MCP_AUTH_TYPE`, `_JWKS_URI`,
+`_PUBLIC_KEY`, `_ISSUER`, `_AUDIENCE`, `_ALGORITHM`, `_REQUIRED_SCOPES`
+(comma-separated), `_REQUIRED_CLAIMS` (comma-separated), `_READ_SCOPE`,
+`_WRITE_SCOPE`, `_AUTHORIZATION_CLAIM`, `_BASE_URL`. Setting
+`REDISVL_MCP_AUTH_TYPE=none` disables auth regardless of YAML.
+
+=== Schema overrides
+
+Older Redis versions omit some field attributes (notably vector dims and
+datatype) from `FT.INFO`. The `index.schema_overrides` block patches the
+inspected schema at startup:
+
+[source,yaml]
+----
+index:
+  redis_name: movies
+  schema_overrides:
+    fields:
+      - name: embedding
+        type: vector
+        attrs:
+          dims: 1536
+          datatype: float32
+----
+
+Overrides can only patch attrs of fields that were discovered from
+`FT.INFO` — they cannot add fields or change a discovered field's type or
+path. The configured `runtime` field mappings are validated against the
+effective (patched) schema at startup, so misconfigurations fail fast
+rather than at query time.
 
 == Using with Claude Desktop
 

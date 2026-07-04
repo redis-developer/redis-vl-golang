@@ -4,6 +4,20 @@
 server:
   redis_url: redis://localhost:6379
 
+  # Optional JWT bearer authentication for the HTTP transports (sse,
+  # streamable-http); stdio is never authenticated. Environment variables
+  # (REDISVL_MCP_AUTH_TYPE, _JWKS_URI, _PUBLIC_KEY, _ISSUER, _AUDIENCE,
+  # _ALGORITHM, _REQUIRED_SCOPES, _REQUIRED_CLAIMS, _READ_SCOPE,
+  # _WRITE_SCOPE, _AUTHORIZATION_CLAIM) override this block.
+  # auth:
+  #   type: jwt
+  #   jwks_uri: https://your-idp.example.com/.well-known/jwks.json
+  #   issuer: https://your-idp.example.com/
+  #   audience: redisvl-mcp
+  #   required_scopes: [mcp:access]
+  #   read_scope: search:read     # gates search-records
+  #   write_scope: search:write   # gates upsert-records
+
 index:
   # Name of an existing Redis search index to expose
   redis_name: movies
@@ -13,6 +27,17 @@ index:
   vectorizer:
     class: openai
     model: text-embedding-3-small
+
+  # Optional field-level schema patches for attrs that FT.INFO omits on
+  # older Redis versions. Overrides can only patch discovered fields —
+  # never add fields or change a field's type or path.
+  # schema_overrides:
+  #   fields:
+  #     - name: embedding
+  #       type: vector
+  #       attrs:
+  #         dims: 1536
+  #         datatype: float32
 
 runtime:
   # Vector field of the index (required when a vectorizer is set)

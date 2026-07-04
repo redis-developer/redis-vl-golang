@@ -37,7 +37,7 @@ Perfect for building **RAG pipelines** with real-time retrieval, **AI agents** w
 
 ## Installation
 
-Install `redis-vl-golang` into your Go (>=1.23) module using `go get`:
+Install `redis-vl-golang` into your Go (>=1.25) module using `go get`:
 
 ```bash
 go get github.com/redis-developer/redis-vl-golang
@@ -569,7 +569,7 @@ Use `--read-only` when clients should only search:
 rvl mcp --config examples/mcp-config.yaml --read-only
 ```
 
-See [examples/mcp-config.yaml](examples/mcp-config.yaml) for the configuration format. Built on the official [MCP Go SDK](https://github.com/modelcontextprotocol/go-sdk). Unlike the Python server, this port has no built-in JWT auth — HTTP binds to non-loopback hosts are refused unless `--allow-unauthenticated` is passed — and does not support SSE transport or schema overrides.
+See [examples/mcp-config.yaml](examples/mcp-config.yaml) for the configuration format. Built on the official [MCP Go SDK](https://github.com/modelcontextprotocol/go-sdk). Like the Python server, it supports stdio, SSE, and Streamable HTTP transports, optional JWT bearer authentication on the HTTP transports (JWKS or static public key, with per-tool read/write scope gating), and field-level schema overrides for attrs that FT.INFO omits. Unauthenticated HTTP binds to non-loopback hosts are refused unless `--allow-unauthenticated` is passed.
 
 ## 🚀 Why RedisVL?
 
@@ -584,7 +584,7 @@ This is a feature-parity port of the Python library's core, extensions, provider
 - **Filter DSL**: Go has no operator overloading, so `Tag("user") == "john" & Num("price") >= 100` becomes `filter.Tag("user").Eq("john").And(filter.Num("price").Ge(100))`. Rendered query strings are identical.
 - **One API instead of sync + async**: every method takes a `context.Context`; there is no separate `AsyncSearchIndex`.
 - **No default local embedding model**: Python's semantic extensions default to a HuggingFace vectorizer; in Go all semantic extensions require an explicit `vectorize.Vectorizer`. For local models use the [`hf` module](#local-embeddings-huggingface--onnx-runtime) (in-process, ONNX Runtime) or Ollama.
-- **Not included**: the VertexAI and Bedrock providers (require cloud SDKs; use `vectorize.Func` to wrap them). `SQLQuery` is not part of the port scope: in Python it is a thin adapter over the separate [sql-redis](https://pypi.org/project/sql-redis/) package, which has no Go equivalent yet — an adapter can be added if one appears. The MCP server is included but omits JWT auth, SSE transport, and schema overrides.
+- **Not included**: the VertexAI and Bedrock providers (require cloud SDKs; use `vectorize.Func` to wrap them). `SQLQuery` is not part of the port scope: in Python it is a thin adapter over the separate [sql-redis](https://pypi.org/project/sql-redis/) package, which has no Go equivalent yet — an adapter can be added if one appears. The MCP server matches Python's feature set: stdio/SSE/Streamable HTTP transports, JWT auth, and schema overrides.
 - **bfloat16/float16** vector encodings are implemented natively (no `ml_dtypes` needed).
 - Operations return errors — nothing panics. Missing indexes can be detected with `errors.Is(err, redisvl.ErrIndexNotFound)`.
 

@@ -30,6 +30,9 @@ type UpsertArgs struct {
 }
 
 func (s *Server) searchTool(ctx context.Context, req *mcp.CallToolRequest, args SearchArgs) (*mcp.CallToolResult, any, error) {
+	if err := s.requireScope(ctx, s.cfg.Server.Auth.readScope()); err != nil {
+		return nil, nil, err
+	}
 	records, err := s.doSearch(ctx, args)
 	if err != nil {
 		return nil, nil, err
@@ -41,6 +44,9 @@ func (s *Server) searchTool(ctx context.Context, req *mcp.CallToolRequest, args 
 }
 
 func (s *Server) upsertTool(ctx context.Context, req *mcp.CallToolRequest, args UpsertArgs) (*mcp.CallToolResult, any, error) {
+	if err := s.requireScope(ctx, s.cfg.Server.Auth.writeScope()); err != nil {
+		return nil, nil, err
+	}
 	keys, err := s.doUpsert(ctx, args)
 	if err != nil {
 		return nil, nil, err

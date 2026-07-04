@@ -9,6 +9,20 @@ Release tags cover both Go modules in this repository: the core module
 
 ## [Unreleased]
 
+### Added
+
+- MCP server: JWT bearer authentication for HTTP transports (JWKS or
+  static public key; issuer/audience/claims validation; per-tool
+  read/write scope gating; `REDISVL_MCP_AUTH_*` environment overrides)
+- MCP server: SSE transport (`--transport sse`)
+- MCP server: field-level `schema_overrides` to patch attrs missing from
+  `FT.INFO` inspection, with startup validation of runtime field mappings
+
+### Changed
+
+- MCP server: with auth configured, HTTP transports may bind to
+  non-loopback hosts without `--allow-unauthenticated`
+
 ## [0.1.1] - 2026-07-03
 
 ### Added

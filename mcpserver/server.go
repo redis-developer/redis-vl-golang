@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
+	"github.com/modelcontextprotocol/go-sdk/auth"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/redis/go-redis/v9"
 
@@ -53,6 +55,37 @@ func New(ctx context.Context, cfg *Config, opts ...Options) (*Server, error) {
 	if err != nil {
 		_ = client.Close()
 		return nil, err
+	}
+
+	// Inspect the index schema and apply any configured overrides, then
+	// validate the runtime field mappings against the effective schema.
+	fields, err := inspectSchema(ctx, client, cfg.Index.RedisName)
+	if err != nil {
+		_ = client.Close()
+		return nil, err
+	}
+	if err := applySchemaOverrides(fields, cfg.Index.SchemaOverrides); err != nil {
+		_ = client.Close()
+		return nil, fmt.Errorf("mcp config: %w", err)
+	}
+	if err := validateRuntimeMapping(fields, cfg); err != nil {
+		_ = client.Close()
+		return nil, fmt.Errorf("mcp config: %w", err)
+	}
+	// The effective vector datatype can come from the (possibly patched)
+	// schema when the config does not set one explicitly. FT.INFO reports
+	// the attribute as data_type; RedisVL schema overrides may use the
+	// YAML spelling datatype.
+	if name := cfg.Runtime.VectorFieldName; name != "" && cfg.dtypeDefaulted {
+		attrs := fields[name].Attrs
+		for _, key := range []string{"datatype", "data_type"} {
+			if dt, ok := attrs[key]; ok {
+				if parsed, err := vectors.Parse(fmt.Sprint(dt)); err == nil {
+					cfg.Runtime.Dtype = string(parsed)
+					break
+				}
+			}
+		}
 	}
 
 	var vec vectorize.Vectorizer
@@ -122,16 +155,44 @@ func (s *Server) Close() error { return s.client.Close() }
 // ReadOnly reports whether the upsert tool is disabled.
 func (s *Server) ReadOnly() bool { return s.readOnly }
 
-// Run serves MCP over stdio until the context is canceled.
+// Run serves MCP over stdio until the context is canceled. stdio is a
+// local subprocess transport and is never authenticated.
 func (s *Server) Run(ctx context.Context) error {
 	return s.mcp.Run(ctx, &mcp.StdioTransport{})
 }
 
+// AuthEnabled reports whether JWT authentication is configured for HTTP
+// transports.
+func (s *Server) AuthEnabled() bool { return s.cfg.Server.Auth.Enabled() }
+
 // RunHTTP serves MCP over Streamable HTTP on addr (host:port) until the
-// context is canceled.
+// context is canceled, applying JWT authentication when configured.
 func (s *Server) RunHTTP(ctx context.Context, addr string) error {
-	handler := mcp.NewStreamableHTTPHandler(
-		func(*http.Request) *mcp.Server { return s.mcp }, nil)
+	handler := http.Handler(mcp.NewStreamableHTTPHandler(
+		func(*http.Request) *mcp.Server { return s.mcp }, nil))
+	return s.serveHTTP(ctx, addr, handler)
+}
+
+// RunSSE serves MCP over the HTTP+SSE transport on addr (host:port) until
+// the context is canceled, applying JWT authentication when configured.
+func (s *Server) RunSSE(ctx context.Context, addr string) error {
+	handler := http.Handler(mcp.NewSSEHandler(
+		func(*http.Request) *mcp.Server { return s.mcp }, nil))
+	return s.serveHTTP(ctx, addr, handler)
+}
+
+func (s *Server) serveHTTP(ctx context.Context, addr string, handler http.Handler) error {
+	if s.AuthEnabled() {
+		verifier, err := buildTokenVerifier(s.cfg.Server.Auth)
+		if err != nil {
+			return err
+		}
+		middleware := auth.RequireBearerToken(verifier, &auth.RequireBearerTokenOptions{
+			Scopes:              s.cfg.Server.Auth.RequiredScopes,
+			ResourceMetadataURL: s.cfg.Server.Auth.BaseURL,
+		})
+		handler = middleware(handler)
+	}
 	httpServer := &http.Server{Addr: addr, Handler: handler}
 
 	errCh := make(chan error, 1)
@@ -139,7 +200,13 @@ func (s *Server) RunHTTP(ctx context.Context, addr string) error {
 
 	select {
 	case <-ctx.Done():
-		_ = httpServer.Shutdown(context.Background())
+		// Long-lived SSE/streaming connections never finish; bound the
+		// graceful drain, then force-close.
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := httpServer.Shutdown(shutdownCtx); err != nil {
+			_ = httpServer.Close()
+		}
 		return nil
 	case err := <-errCh:
 		if errors.Is(err, http.ErrServerClosed) {
