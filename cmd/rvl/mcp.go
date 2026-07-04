@@ -15,6 +15,23 @@ var loopbackHosts = map[string]bool{
 	"127.0.0.1": true, "::1": true, "localhost": true,
 }
 
+// checkHTTPBind decides whether an HTTP transport may bind to host and
+// whether to print the unauthenticated-exposure warning (mirrors the
+// Python CLI check): configured auth permits any bind silently;
+// unauthenticated non-loopback binds require the explicit override flag;
+// every unauthenticated bind warns.
+func checkHTTPBind(host string, authEnabled, allowUnauthenticated bool) (warn bool, err error) {
+	if authEnabled {
+		return false, nil
+	}
+	if !loopbackHosts[host] && !allowUnauthenticated {
+		return false, fmt.Errorf(
+			"refusing to bind an unauthenticated MCP server to non-loopback host %q; "+
+				"configure server.auth or pass --allow-unauthenticated to override", host)
+	}
+	return true, nil
+}
+
 // mcpCmd runs the RedisVL MCP server (Go port of `rvl mcp`).
 func mcpCmd(args []string) error {
 	fs := flag.NewFlagSet("mcp", flag.ContinueOnError)
@@ -53,15 +70,11 @@ func mcpCmd(args []string) error {
 		return fmt.Errorf("unknown transport %q (supported: stdio, sse, streamable-http)", *transport)
 	}
 
-	// Fail closed on unauthenticated non-loopback binds unless explicitly
-	// allowed (mirrors the Python CLI check). Configured JWT auth makes
-	// non-loopback binds acceptable.
-	if !server.AuthEnabled() {
-		if !loopbackHosts[*host] && !*allowUnauthenticated {
-			return fmt.Errorf(
-				"refusing to bind an unauthenticated MCP server to non-loopback host %q; "+
-					"configure server.auth or pass --allow-unauthenticated to override", *host)
-		}
+	warn, err := checkHTTPBind(*host, server.AuthEnabled(), *allowUnauthenticated)
+	if err != nil {
+		return err
+	}
+	if warn {
 		fmt.Fprintf(os.Stderr,
 			"WARNING: serving MCP over %s on %s:%d without authentication. "+
 				"Any client that can reach this address has full access.\n",

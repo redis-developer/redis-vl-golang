@@ -168,31 +168,55 @@ func (s *Server) AuthEnabled() bool { return s.cfg.Server.Auth.Enabled() }
 // RunHTTP serves MCP over Streamable HTTP on addr (host:port) until the
 // context is canceled, applying JWT authentication when configured.
 func (s *Server) RunHTTP(ctx context.Context, addr string) error {
-	handler := http.Handler(mcp.NewStreamableHTTPHandler(
-		func(*http.Request) *mcp.Server { return s.mcp }, nil))
+	handler, err := s.streamableHandler()
+	if err != nil {
+		return err
+	}
 	return s.serveHTTP(ctx, addr, handler)
 }
 
 // RunSSE serves MCP over the HTTP+SSE transport on addr (host:port) until
 // the context is canceled, applying JWT authentication when configured.
 func (s *Server) RunSSE(ctx context.Context, addr string) error {
-	handler := http.Handler(mcp.NewSSEHandler(
-		func(*http.Request) *mcp.Server { return s.mcp }, nil))
+	handler, err := s.sseHandler()
+	if err != nil {
+		return err
+	}
 	return s.serveHTTP(ctx, addr, handler)
 }
 
-func (s *Server) serveHTTP(ctx context.Context, addr string, handler http.Handler) error {
-	if s.AuthEnabled() {
-		verifier, err := buildTokenVerifier(s.cfg.Server.Auth)
-		if err != nil {
-			return err
-		}
-		middleware := auth.RequireBearerToken(verifier, &auth.RequireBearerTokenOptions{
-			Scopes:              s.cfg.Server.Auth.RequiredScopes,
-			ResourceMetadataURL: s.cfg.Server.Auth.BaseURL,
-		})
-		handler = middleware(handler)
+// streamableHandler builds the Streamable HTTP handler with the auth
+// middleware applied when configured.
+func (s *Server) streamableHandler() (http.Handler, error) {
+	return s.withAuth(mcp.NewStreamableHTTPHandler(
+		func(*http.Request) *mcp.Server { return s.mcp }, nil))
+}
+
+// sseHandler builds the HTTP+SSE handler with the auth middleware applied
+// when configured.
+func (s *Server) sseHandler() (http.Handler, error) {
+	return s.withAuth(mcp.NewSSEHandler(
+		func(*http.Request) *mcp.Server { return s.mcp }, nil))
+}
+
+// withAuth wraps handler with bearer-token authentication when JWT auth
+// is configured; otherwise it returns handler unchanged.
+func (s *Server) withAuth(handler http.Handler) (http.Handler, error) {
+	if !s.AuthEnabled() {
+		return handler, nil
 	}
+	verifier, err := buildTokenVerifier(s.cfg.Server.Auth)
+	if err != nil {
+		return nil, err
+	}
+	middleware := auth.RequireBearerToken(verifier, &auth.RequireBearerTokenOptions{
+		Scopes:              s.cfg.Server.Auth.RequiredScopes,
+		ResourceMetadataURL: s.cfg.Server.Auth.BaseURL,
+	})
+	return middleware(handler), nil
+}
+
+func (s *Server) serveHTTP(ctx context.Context, addr string, handler http.Handler) error {
 	httpServer := &http.Server{Addr: addr, Handler: handler}
 
 	errCh := make(chan error, 1)
