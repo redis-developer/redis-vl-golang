@@ -54,9 +54,11 @@ work:
 	@echo "go.work ready"
 
 # Note: `go mod tidy` resolves the released core module version, so it
-# needs the corresponding tag to exist on GitHub.
+# needs the corresponding tag to exist on GitHub. GOWORK=off ensures the
+# go.sum entries for the core module are written even when a local
+# go.work workspace is active (standalone consumers need them).
 deps-hf:
-	cd extensions/vectorize/hf && go mod tidy
+	cd extensions/vectorize/hf && GOWORK=off go mod tidy
 
 vet-hf:
 	cd extensions/vectorize/hf && go vet ./...

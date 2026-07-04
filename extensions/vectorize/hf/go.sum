@@ -9,8 +9,8 @@ github.com/patrickmn/go-cache v2.1.0+incompatible h1:HRMgzkcYKYpi3C8ajMPV8OFXaaR
 github.com/patrickmn/go-cache v2.1.0+incompatible/go.mod h1:3Qf8kWWT7OJRJbdiICTKqZju1ZixQ/KpMGzzAfe6+WQ=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
-github.com/redis-developer/redis-vl-golang v0.1.0 h1:kG5FvVAD4CIq+kEbV/4MmR3+a2zftLojir+5+hBndLs=
-github.com/redis-developer/redis-vl-golang v0.1.0/go.mod h1:B72I4B4aTLUASXBE65dpxz/INmvFadZZz0oGGu85gcM=
+github.com/redis-developer/redis-vl-golang v0.1.2 h1:EhH08KFsYBuRUIzm8okQ+haRMTQkAEWomIDa5XVWax4=
+github.com/redis-developer/redis-vl-golang v0.1.2/go.mod h1:V/SzNVCJsw8PBIRiTZpKV5jVqRr7BSwp9oOmyWu2rys=
 github.com/rivo/uniseg v0.4.7 h1:WUdvkW8uEhrYfLC4ZzdpI2ztxP1I582+49Oc5Mq64VQ=
 github.com/rivo/uniseg v0.4.7/go.mod h1:FN3SvrM+Zdj16jyLfmOkMNblXMcoc8DfTHruCPUcx88=
 github.com/schollz/progressbar/v2 v2.15.0 h1:dVzHQ8fHRmtPjD3K10jT3Qgn/+H+92jhPrhmxIJfDz8=

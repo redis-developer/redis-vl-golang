@@ -107,3 +107,12 @@ jobs:
       - name: Test
         working-directory: extensions/vectorize/hf
         run: go test ./...
+
+      # The module must also resolve standalone (no workspace), the way
+      # external consumers build it — catches missing go.sum entries for
+      # the released core module version.
+      - name: Verify standalone module resolution
+        working-directory: extensions/vectorize/hf
+        env:
+          GOWORK: "off"
+        run: go build ./...

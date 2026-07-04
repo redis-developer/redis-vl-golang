@@ -97,8 +97,12 @@ workspace mode) before anything depending on it builds:
 git tag vX.Y.Z && git push origin vX.Y.Z
 
 # 2. bump the core requirement in extensions/vectorize/hf/go.mod to vX.Y.Z,
-#    validate (GOPRIVATE skips proxy caching lag), commit, push
+#    refresh go.sum, and validate — including standalone (no-workspace)
+#    resolution, which is how external consumers build the module
+GOPRIVATE=github.com/redis-developer/redis-vl-golang make deps-hf
 GOPRIVATE=github.com/redis-developer/redis-vl-golang make check test-hf
+cd extensions/vectorize/hf && GOWORK=off go test ./... && cd ../..
+#    commit and push (go.mod + go.sum)
 
 # 3. tag and push the hf module on that commit
 git tag extensions/vectorize/hf/vX.Y.Z
