@@ -97,8 +97,9 @@ bench-py:
 		$(PYTHON) benchmarks/pybench/bench.py; \
 	fi
 
-# Installs redisvl into a local virtualenv (benchmarks/pybench/.venv) so it
-# works on PEP 668 externally-managed Pythons (Homebrew, Debian, ...).
+# Installs redisvl + testcontainers into a local virtualenv
+# (benchmarks/pybench/.venv) so it works on PEP 668 externally-managed
+# Pythons (Homebrew, Debian, ...).
 bench-py-deps:
 	$(PYTHON) -m venv benchmarks/pybench/.venv
-	benchmarks/pybench/.venv/bin/python -m pip install --upgrade pip redisvl
+	benchmarks/pybench/.venv/bin/python -m pip install --upgrade pip redisvl testcontainers

@@ -9,6 +9,13 @@ Release tags cover both Go modules in this repository: the core module
 
 ## [Unreleased]
 
+### Changed
+
+- Benchmarks now start their own throwaway Redis testcontainer per run
+  (pinned `redis:8.8.0`, `REDIS_IMAGE` override) instead of requiring an
+  external instance, so neither language benefits from a warmed-up
+  database; pass `-url`/`--url` to benchmark an external Redis
+
 ## [0.1.2] - 2026-07-03
 
 ### Added

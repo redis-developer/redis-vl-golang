@@ -1,15 +1,3 @@
-// Command gobench benchmarks RedisVL for Go against a running Redis. It
-// mirrors benchmarks/pybench/bench.py exactly (same schema, dataset shape,
-// and workloads) so the two implementations can be compared:
-//
-//  1. load:       bulk-load N documents (pipelined batches of 500)
-//  2. sequential: single-threaded KNN queries, latency percentiles
-//  3. concurrent: C workers issuing KNN queries, aggregate QPS
-//
-// Usage:
-//
-//	go run ./benchmarks/gobench [-docs 10000] [-dims 384] [-queries 500] \
-//	    [-concurrency 32] [-conc-queries 3200] [-k 10] [-url redis://localhost:6379]
 package main
 
 import (
@@ -24,12 +12,19 @@ import (
 	"sync"
 	"time"
 
+	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/wait"
+
 	redisvl "github.com/redis-developer/redis-vl-golang"
 	"github.com/redis-developer/redis-vl-golang/filter"
 	"github.com/redis-developer/redis-vl-golang/query"
 	"github.com/redis-developer/redis-vl-golang/schema"
 	"github.com/redis-developer/redis-vl-golang/vectors"
 )
+
+// defaultImage is the pinned Redis image, matching the integration tests
+// and the Python benchmark so comparisons stay apples-to-apples.
+const defaultImage = "redis:8.8.0"
 
 func main() {
 	var (
@@ -39,7 +34,7 @@ func main() {
 		concurrency = flag.Int("concurrency", 32, "concurrent workers")
 		concQueries = flag.Int("conc-queries", 3200, "total queries in the concurrent phase")
 		k           = flag.Int("k", 10, "KNN results per query")
-		url         = flag.String("url", envOr("REDIS_URL", "redis://localhost:6379"), "redis url")
+		url         = flag.String("url", "", "external redis url (default: start a fresh testcontainer)")
 	)
 	flag.Parse()
 
@@ -49,15 +44,45 @@ func main() {
 	}
 }
 
-func envOr(key, def string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
+// startContainer launches a fresh Redis testcontainer and returns its
+// connection URL and a cleanup function.
+func startContainer(ctx context.Context) (string, func(), error) {
+	image := os.Getenv("REDIS_IMAGE")
+	if image == "" {
+		image = defaultImage
 	}
-	return def
+	fmt.Fprintf(os.Stderr, "starting %s testcontainer (pass -url to use an external Redis)...\n", image)
+
+	container, err := testcontainers.Run(ctx, image,
+		testcontainers.WithExposedPorts("6379/tcp"),
+		testcontainers.WithWaitStrategy(wait.ForListeningPort("6379/tcp")),
+	)
+	if err != nil {
+		return "", nil, fmt.Errorf("starting redis testcontainer (is Docker running?): %w", err)
+	}
+	cleanup := func() { _ = testcontainers.TerminateContainer(container) }
+
+	url, err := container.PortEndpoint(ctx, "6379/tcp", "redis")
+	if err != nil {
+		cleanup()
+		return "", nil, err
+	}
+	return url, cleanup, nil
 }
 
 func run(nDocs, dims, nQueries, concurrency, concQueries, k int, url string) error {
 	ctx := context.Background()
+
+	// Each benchmark run gets its own identical, freshly started database
+	// unless the user explicitly points at an external one.
+	if url == "" {
+		containerURL, cleanup, err := startContainer(ctx)
+		if err != nil {
+			return err
+		}
+		defer cleanup()
+		url = containerURL
+	}
 
 	vf, err := schema.NewVectorField("embedding", schema.VectorAttrs{
 		Dims: dims, Algorithm: schema.HNSW, Datatype: "float32",

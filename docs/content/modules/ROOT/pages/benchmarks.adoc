@@ -31,14 +31,10 @@ Two mirror-image programs — `benchmarks/gobench/main.go` (Go) and `benchmarks/
 
 == Running the benchmarks
 
-A running Redis 8 instance is required:
-
-[source,shell]
-----
-docker run -d -p 6379:6379 redis:8.8.0
-----
-
-Then, from the repository root:
+Only Docker is required: each benchmark run starts its own throwaway
+Redis testcontainer (pinned `redis:8.8.0`, override with `REDIS_IMAGE`)
+and tears it down afterwards, so neither language benefits from a
+warmed-up instance left behind by the other. From the repository root:
 
 [source,shell]
 ----
@@ -46,11 +42,15 @@ Then, from the repository root:
 make bench-go
 
 # Python
-make bench-py-deps   # one-time: creates benchmarks/pybench/.venv and installs redisvl
+make bench-py-deps   # one-time: creates benchmarks/pybench/.venv and installs redisvl + testcontainers
 make bench-py
 ----
 
-Each program uses its own index name (`bench-go` / `bench-py`) and cleans up after itself. Workload parameters can be tuned with `-docs/--docs`, `-dims/--dims`, `-queries/--queries`, `-concurrency/--concurrency`, `-conc-queries/--conc-queries`, `-k/--k`, and the `REDIS_URL` environment variable. Each run prints a human-readable summary plus one JSON line with all metrics, so runs can be collected and diffed programmatically.
+To benchmark against an external Redis instead (for example a remote
+server, to include network serialization), pass `-url` / `--url`
+explicitly.
+
+Each program uses its own index name (`bench-go` / `bench-py`) and cleans up after itself. Workload parameters can be tuned with `-docs/--docs`, `-dims/--dims`, `-queries/--queries`, `-concurrency/--concurrency`, `-conc-queries/--conc-queries`, and `-k/--k`. Each run prints a human-readable summary plus one JSON line with all metrics, so runs can be collected and diffed programmatically.
 
 == Sample results
 

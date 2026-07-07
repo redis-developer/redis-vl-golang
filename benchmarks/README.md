@@ -1,11 +1,18 @@
 # RedisVL Go vs Python benchmarks
 
 Two mirror-image benchmark programs — `gobench/main.go` (Go) and
-`pybench/bench.py` (Python) — run the same workloads against the same Redis
-so the client libraries can be compared head to head. The vector search itself executes
-inside Redis and is identical for both; what these benchmarks measure is
-the *client-side* cost each library adds: query building, vector
-serialization, reply parsing, validation, and concurrency behavior.
+`pybench/bench.py` (Python) — run the same workloads against identical
+Redis instances so the client libraries can be compared head to head. The
+vector search itself executes inside Redis and is identical for both; what
+these benchmarks measure is the *client-side* cost each library adds:
+query building, vector serialization, reply parsing, validation, and
+concurrency behavior.
+
+By default, each benchmark run starts its **own throwaway Redis
+testcontainer** (pinned `redis:8.8.0`, override with `REDIS_IMAGE`) and
+tears it down afterwards. This keeps the comparison fair: neither run
+inherits a warmed-up instance, OS page cache, or leftover memory state
+from the other. Container startup happens before any timing begins.
 
 ## Workloads
 
@@ -25,41 +32,43 @@ carry a tag filter, half are pure KNN, k=10.
 
 ## Running
 
-Requires a running Redis 8 / Redis Stack, e.g.:
-
-```bash
-docker run -d -p 6379:6379 redis:8.8.0
-```
-
-Each program uses its own index name (`bench-go` / `bench-py`) and cleans
-up after itself.
+Requires Docker (for the testcontainers) — no Redis setup needed.
 
 ```bash
 # Go (from this repository's root)
 make bench-go
 
 # Python
-make bench-py-deps   # one-time: creates benchmarks/.venv and installs redisvl
+make bench-py-deps   # one-time: creates the venv, installs redisvl + testcontainers
 make bench-py
 ```
 
-`bench-py-deps` installs redisvl into a local virtualenv
+To benchmark against an **external** Redis instead of a fresh container
+(for example a remote server, to include network serialization), pass
+`-url` / `--url` explicitly:
+
+```bash
+go run ./benchmarks/gobench -url redis://myhost:6379
+python benchmarks/pybench/bench.py --url redis://myhost:6379
+```
+
+`bench-py-deps` installs the dependencies into a local virtualenv
 (`benchmarks/pybench/.venv`, gitignored), which works on PEP 668
 externally-managed Pythons (Homebrew, Debian). `bench-py` uses that venv
-when present, otherwise whatever `python3`/`python` is active — so an
-already-activated environment with redisvl installed works too.
+when present, otherwise whatever `python3`/`python` is active.
 
 Flags/env: `-docs/--docs`, `-dims/--dims`, `-queries/--queries`,
 `-concurrency/--concurrency`, `-conc-queries/--conc-queries`, `-k/--k`,
-and `REDIS_URL`.
+`-url/--url`, and `REDIS_IMAGE`.
 
 Each program prints a human-readable summary plus one JSON line with all
 metrics, so runs can be collected and diffed programmatically.
 
 ## Fair-comparison notes
 
-- Run both against the same Redis instance, same machine, ideally several
-  times, discarding the first run (connection pool warmup, OS caches).
+- Each run gets a fresh, identical container, so runs are directly
+  comparable — but still run each benchmark several times on a quiet
+  machine and look at the spread, not a single sample.
 - Redis itself is often the bottleneck in the concurrent phase; if both
   implementations converge on the same QPS, Redis is saturated — lower
   `--concurrency` or use a larger `--docs` to shift work to the clients,

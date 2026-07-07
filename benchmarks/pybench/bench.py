@@ -1,22 +1,5 @@
-"""Benchmark RedisVL for Python against a running Redis.
-
-Mirrors benchmarks/gobench/main.go exactly (same schema, dataset shape, and
-workloads) so the two implementations can be compared:
-
-  1. load:       bulk-load N documents (batches of 500)
-  2. sequential: single-threaded KNN queries, latency percentiles
-  3. concurrent: C threads issuing KNN queries, aggregate QPS
-
-Standalone: requires only the redisvl package (pip install redisvl).
-Use python3/pip3 on systems without a `python`/`pip` alias, e.g.:
-
-  python3 -m venv .venv && .venv/bin/pip install redisvl
-  .venv/bin/python benchmarks/pybench/bench.py --docs 10000
-
-Or simply: make bench-py-deps && make bench-py (handles the fallback).
-"""
-
 import argparse
+import contextlib
 import json
 import os
 import random
@@ -30,6 +13,8 @@ from redisvl.index import SearchIndex
 from redisvl.query import VectorQuery
 from redisvl.query.filter import Tag
 
+DEFAULT_IMAGE = "redis:8.8.0"
+
 
 def parse_args():
     p = argparse.ArgumentParser(description=__doc__)
@@ -39,8 +24,27 @@ def parse_args():
     p.add_argument("--concurrency", type=int, default=32)
     p.add_argument("--conc-queries", type=int, default=3200)
     p.add_argument("--k", type=int, default=10)
-    p.add_argument("--url", default=os.environ.get("REDIS_URL", "redis://localhost:6379"))
+    p.add_argument(
+        "--url",
+        default=None,
+        help="external redis url (default: start a fresh testcontainer)",
+    )
     return p.parse_args()
+
+
+def start_container(stack):
+    """Launch a fresh Redis testcontainer and return its connection URL."""
+    from testcontainers.redis import RedisContainer
+
+    image = os.environ.get("REDIS_IMAGE", DEFAULT_IMAGE)
+    print(
+        f"starting {image} testcontainer (pass --url to use an external Redis)...",
+        file=sys.stderr,
+    )
+    container = stack.enter_context(RedisContainer(image))
+    host = container.get_container_host_ip()
+    port = container.get_exposed_port(6379)
+    return f"redis://{host}:{port}"
 
 
 def random_unit_vector(rng, dims):
@@ -82,6 +86,14 @@ def percentile(sorted_vals, p):
 def main():
     args = parse_args()
 
+    with contextlib.ExitStack() as stack:
+        # Each benchmark run gets its own identical, freshly started
+        # database unless the user explicitly points at an external one.
+        url = args.url or start_container(stack)
+        run_benchmark(args, url)
+
+
+def run_benchmark(args, url):
     schema = {
         "index": {"name": "bench-py", "prefix": "bench-py", "storage_type": "hash"},
         "fields": [
@@ -100,7 +112,7 @@ def main():
             },
         ],
     }
-    index = SearchIndex.from_dict(schema, redis_url=args.url)
+    index = SearchIndex.from_dict(schema, redis_url=url)
     index.create(overwrite=True, drop=True)
 
     # --- dataset (generation excluded from timings) ---
