@@ -15,11 +15,11 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 
-	redisvl "github.com/redis-developer/redis-vl-golang"
-	"github.com/redis-developer/redis-vl-golang/filter"
-	"github.com/redis-developer/redis-vl-golang/query"
-	"github.com/redis-developer/redis-vl-golang/schema"
-	"github.com/redis-developer/redis-vl-golang/vectors"
+	redisvl "github.com/redis/redis-vl-golang"
+	"github.com/redis/redis-vl-golang/filter"
+	"github.com/redis/redis-vl-golang/query"
+	"github.com/redis/redis-vl-golang/schema"
+	"github.com/redis/redis-vl-golang/vectors"
 )
 
 // defaultImage is the pinned Redis image, matching the integration tests

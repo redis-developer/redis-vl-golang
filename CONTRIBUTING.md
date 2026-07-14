@@ -99,8 +99,8 @@ git tag vX.Y.Z && git push origin vX.Y.Z
 # 2. bump the core requirement in extensions/vectorize/hf/go.mod to vX.Y.Z,
 #    refresh go.sum, and validate — including standalone (no-workspace)
 #    resolution, which is how external consumers build the module
-GOPRIVATE=github.com/redis-developer/redis-vl-golang make deps-hf
-GOPRIVATE=github.com/redis-developer/redis-vl-golang make check test-hf
+GOPRIVATE=github.com/redis/redis-vl-golang make deps-hf
+GOPRIVATE=github.com/redis/redis-vl-golang make check test-hf
 cd extensions/vectorize/hf && GOWORK=off go test ./... && cd ../..
 #    commit and push (go.mod + go.sum)
 
@@ -175,7 +175,7 @@ go test -coverprofile=coverage.out ./... && go tool cover -html=coverage.out
 
 ## Documentation
 
-API documentation is generated from doc comments and served on [pkg.go.dev](https://pkg.go.dev/github.com/redis-developer/redis-vl-golang) once published. Preview locally with:
+API documentation is generated from doc comments and served on [pkg.go.dev](https://pkg.go.dev/github.com/redis/redis-vl-golang) once published. Preview locally with:
 
 ```bash
 # Serve godoc locally at http://localhost:6060

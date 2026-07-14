@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/redis-developer/redis-vl-golang/filter"
-	"github.com/redis-developer/redis-vl-golang/vectors"
+	"github.com/redis/redis-vl-golang/filter"
+	"github.com/redis/redis-vl-golang/vectors"
 )
 
 // VectorRangeQuery finds all vectors within a distance threshold, with an

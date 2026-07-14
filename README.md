@@ -6,7 +6,7 @@
 
 <div align="center">
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/redis-developer/redis-vl-golang.svg)](https://pkg.go.dev/github.com/redis-developer/redis-vl-golang)
+[![Go Reference](https://pkg.go.dev/badge/github.com/redis/redis-vl-golang.svg)](https://pkg.go.dev/github.com/redis/redis-vl-golang)
 [![CI](https://github.com/redis/redis-vl-golang/actions/workflows/ci.yml/badge.svg)](https://github.com/redis/redis-vl-golang/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![Language](https://img.shields.io/badge/go-%3E%3D1.25-00ADD8?logo=go)
@@ -40,7 +40,7 @@ Perfect for building **RAG pipelines** with real-time retrieval, **AI agents** w
 Install `redis-vl-golang` into your Go (>=1.25) module using `go get`:
 
 ```bash
-go get github.com/redis-developer/redis-vl-golang
+go get github.com/redis/redis-vl-golang
 ```
 
 ## Redis
@@ -117,7 +117,7 @@ This runs Redis 8+ with built-in vector search capabilities.
     ```
 
     ```go
-    import "github.com/redis-developer/redis-vl-golang/schema"
+    import "github.com/redis/redis-vl-golang/schema"
 
     s, err := schema.FromYAMLFile("schemas/schema.yaml")
     ```
@@ -128,7 +128,7 @@ This runs Redis 8+ with built-in vector search capabilities.
     <summary><b>Build schema programmatically</b></summary>
 
     ```go
-    import "github.com/redis-developer/redis-vl-golang/schema"
+    import "github.com/redis/redis-vl-golang/schema"
 
     embedding, err := schema.NewVectorField("embedding", schema.VectorAttrs{
         Algorithm:      schema.Flat, // or schema.HNSW, schema.SVSVamana
@@ -157,7 +157,7 @@ This runs Redis 8+ with built-in vector search capabilities.
 2. **Create a SearchIndex** with an input schema to perform admin and search operations on your index in Redis:
 
     ```go
-    import redisvl "github.com/redis-developer/redis-vl-golang"
+    import redisvl "github.com/redis/redis-vl-golang"
 
     // Define the index
     index, err := redisvl.NewSearchIndexFromURL(s, "redis://localhost:6379")
@@ -174,7 +174,7 @@ This runs Redis 8+ with built-in vector search capabilities.
 3. **Load and fetch** data to/from your Redis instance:
 
     ```go
-    import "github.com/redis-developer/redis-vl-golang/vectors"
+    import "github.com/redis/redis-vl-golang/vectors"
 
     emb, _ := vectors.ToBuffer([]float64{0.23, 0.49, -0.18, 0.95}, vectors.Float32)
     data := map[string]any{"user": "john", "credit_score": "high", "embedding": emb}
@@ -211,7 +211,7 @@ Define queries and perform advanced searches over your indices, including vector
 - `VectorQuery` - Flexible vector queries with customizable filters enabling semantic search:
 
     ```go
-    import "github.com/redis-developer/redis-vl-golang/query"
+    import "github.com/redis/redis-vl-golang/query"
 
     q := query.NewVectorQuery("embedding", []float64{0.16, -0.34, 0.98, 0.23}).
         NumResults(3).
@@ -229,8 +229,8 @@ Build complex filtering queries by combining multiple filter types (tags, numeri
 
 ```go
 import (
-    "github.com/redis-developer/redis-vl-golang/filter"
-    "github.com/redis-developer/redis-vl-golang/query"
+    "github.com/redis/redis-vl-golang/filter"
+    "github.com/redis/redis-vl-golang/query"
 )
 
 // Combine multiple filter types
@@ -292,7 +292,7 @@ Integrate with popular embedding providers to greatly simplify the process of ve
 </details>
 
 ```go
-import "github.com/redis-developer/redis-vl-golang/extensions/vectorize"
+import "github.com/redis/redis-vl-golang/extensions/vectorize"
 
 // set COHERE_API_KEY in your environment
 co, err := vectorize.NewCohereVectorizer(ctx, vectorize.CohereConfig{})
@@ -314,7 +314,7 @@ embeddings, err := co.EmbedMany(ctx, []string{
 Run sentence-transformer models **in-process** — no API key, no per-call cost, data never leaves your machine. Like Python's `HFTextVectorizer`, the model is downloaded from the Hugging Face Hub on first use and cached locally:
 
 ```go
-import "github.com/redis-developer/redis-vl-golang/extensions/vectorize/hf"
+import "github.com/redis/redis-vl-golang/extensions/vectorize/hf"
 
 vec, err := hf.New(ctx, hf.Config{
     Model: "sentence-transformers/all-MiniLM-L6-v2",
@@ -324,14 +324,14 @@ defer vec.Close()
 embedding, err := vec.Embed(ctx, "Hello, world!")
 ```
 
-The `hf` package is a **separate Go module** (`go get github.com/redis-developer/redis-vl-golang/extensions/vectorize/hf`) because it binds to ONNX Runtime via cgo; the core library stays pure Go. It requires the [onnxruntime shared library](https://onnxruntime.ai/docs/install/) (point `ONNXRUNTIME_LIB_PATH` or `Config.ONNXRuntimePath` at it) and works with any BERT-family sentence-transformers model that ships an ONNX export — including `redis/langcache-embed-v1`. Pooling and normalization follow each model's sentence-transformers configuration, so embeddings match Python's output.
+The `hf` package is a **separate Go module** (`go get github.com/redis/redis-vl-golang/extensions/vectorize/hf`) because it binds to ONNX Runtime via cgo; the core library stays pure Go. It requires the [onnxruntime shared library](https://onnxruntime.ai/docs/install/) (point `ONNXRUNTIME_LIB_PATH` or `Config.ONNXRuntimePath` at it) and works with any BERT-family sentence-transformers model that ships an ONNX export — including `redis/langcache-embed-v1`. Pooling and normalization follow each model's sentence-transformers configuration, so embeddings match Python's output.
 
 ### Rerankers
 
 Integrate with popular reranking providers to improve the relevancy of the initial search results from Redis:
 
 ```go
-import "github.com/redis-developer/redis-vl-golang/extensions/rerank"
+import "github.com/redis/redis-vl-golang/extensions/rerank"
 
 // Cohere (rerank-english-v3.0 default) or VoyageAI
 r, err := rerank.NewCohereReranker(rerank.CohereConfig{Limit: 3})
@@ -342,7 +342,7 @@ results, err := r.Rank(ctx, "query text", []string{"doc one", "doc two", "doc th
 Or rerank **locally** with a Hugging Face cross-encoder (no API key; same `hf` module and requirements as local embeddings):
 
 ```go
-import "github.com/redis-developer/redis-vl-golang/extensions/vectorize/hf"
+import "github.com/redis/redis-vl-golang/extensions/vectorize/hf"
 
 // cross-encoder/ms-marco-MiniLM-L-6-v2 by default
 ce, err := hf.NewCrossEncoder(ctx, hf.CrossEncoderConfig{Limit: 3})
@@ -365,7 +365,7 @@ Increase application throughput and reduce the cost of using LLM models in produ
 <summary><b>Example: Semantic Cache Usage</b></summary>
 
 ```go
-import "github.com/redis-developer/redis-vl-golang/extensions/cache"
+import "github.com/redis/redis-vl-golang/extensions/cache"
 
 // init cache with TTL and semantic distance threshold
 llmcache, err := cache.NewSemanticCache(ctx, client, vectorizer, cache.SemanticCacheOptions{
@@ -398,7 +398,7 @@ Reduce computational costs and improve performance by caching embedding vectors 
 <summary><b>Example: Embedding Cache Usage</b></summary>
 
 ```go
-import "github.com/redis-developer/redis-vl-golang/extensions/cache"
+import "github.com/redis/redis-vl-golang/extensions/cache"
 
 // Initialize embedding cache
 embedCache := cache.NewEmbeddingsCache(client, cache.EmbeddingsCacheOptions{
@@ -423,7 +423,7 @@ Improve personalization and accuracy of LLM responses by providing user conversa
 <summary><b>Example: Message History Usage</b></summary>
 
 ```go
-import "github.com/redis-developer/redis-vl-golang/extensions/history"
+import "github.com/redis/redis-vl-golang/extensions/history"
 
 h, err := history.NewSemanticMessageHistory(ctx, client, "my-session", vectorizer,
     history.SemanticMessageHistoryOptions{DistanceThreshold: 0.7})
@@ -459,7 +459,7 @@ Build fast decision models that run directly in Redis and route user queries to 
 <summary><b>Example: Semantic Router Usage</b></summary>
 
 ```go
-import "github.com/redis-developer/redis-vl-golang/extensions/router"
+import "github.com/redis/redis-vl-golang/extensions/router"
 
 routes := []router.Route{
     {
@@ -511,7 +511,7 @@ shasum -a 256 -c checksums.txt --ignore-missing
 **With the Go toolchain:**
 
 ```bash
-go install github.com/redis-developer/redis-vl-golang/cmd/rvl@latest
+go install github.com/redis/redis-vl-golang/cmd/rvl@latest
 ```
 
 **From a checkout:**

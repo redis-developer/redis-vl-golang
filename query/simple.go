@@ -1,6 +1,6 @@
 package query
 
-import "github.com/redis-developer/redis-vl-golang/filter"
+import "github.com/redis/redis-vl-golang/filter"
 
 // FilterQuery runs a filtered (non-vector) search (port of
 // redisvl.query.FilterQuery).

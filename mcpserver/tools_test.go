@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	redisvl "github.com/redis-developer/redis-vl-golang"
-	"github.com/redis-developer/redis-vl-golang/extensions/vectorize"
-	"github.com/redis-developer/redis-vl-golang/schema"
-	"github.com/redis-developer/redis-vl-golang/vectors"
+	redisvl "github.com/redis/redis-vl-golang"
+	"github.com/redis/redis-vl-golang/extensions/vectorize"
+	"github.com/redis/redis-vl-golang/schema"
+	"github.com/redis/redis-vl-golang/vectors"
 )
 
 // testServer builds a Server without touching Redis (schema-only paths).

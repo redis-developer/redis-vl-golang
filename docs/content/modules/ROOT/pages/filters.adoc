@@ -7,7 +7,7 @@ Go has no operator overloading, so Python's `Tag("user") == "john"` becomes `fil
 
 [source,go]
 ----
-import "github.com/redis-developer/redis-vl-golang/filter"
+import "github.com/redis/redis-vl-golang/filter"
 
 f := filter.Tag("brand").Eq("nike").And(filter.Num("price").Lt(100))
 f.String() // (@brand:{nike} @price:[-inf (100])
@@ -144,8 +144,8 @@ Every query type that supports filtering exposes a `Filter` method:
 [source,go]
 ----
 import (
-    "github.com/redis-developer/redis-vl-golang/filter"
-    "github.com/redis-developer/redis-vl-golang/query"
+    "github.com/redis/redis-vl-golang/filter"
+    "github.com/redis/redis-vl-golang/query"
 )
 
 combined := filter.Tag("genre").Eq("comedy", "drama").

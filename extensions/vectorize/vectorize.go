@@ -12,7 +12,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/redis-developer/redis-vl-golang/vectors"
+	"github.com/redis/redis-vl-golang/vectors"
 )
 
 // Vectorizer converts text into vector embeddings.

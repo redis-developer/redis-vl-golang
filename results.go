@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/redis-developer/redis-vl-golang/query"
+	"github.com/redis/redis-vl-golang/query"
 )
 
 // Document is a single search hit.

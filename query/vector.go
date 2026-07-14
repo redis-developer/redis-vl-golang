@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/redis-developer/redis-vl-golang/filter"
-	"github.com/redis-developer/redis-vl-golang/vectors"
+	"github.com/redis/redis-vl-golang/filter"
+	"github.com/redis/redis-vl-golang/vectors"
 )
 
 // HybridPolicy controls how filters are applied during vector search.

@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/redis-developer/redis-vl-golang/vectors"
+	"github.com/redis/redis-vl-golang/vectors"
 )
 
 // MistralConfig configures a Mistral vectorizer.

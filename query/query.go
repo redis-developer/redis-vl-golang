@@ -6,7 +6,7 @@ package query
 import (
 	"sort"
 
-	"github.com/redis-developer/redis-vl-golang/filter"
+	"github.com/redis/redis-vl-golang/filter"
 )
 
 // SortBy is a sort specification (single field; Redis Search supports one

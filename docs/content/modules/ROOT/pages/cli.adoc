@@ -35,7 +35,7 @@ shasum -a 256 -c checksums.txt --ignore-missing
 
 [source,shell]
 ----
-go install github.com/redis-developer/redis-vl-golang/cmd/rvl@latest
+go install github.com/redis/redis-vl-golang/cmd/rvl@latest
 ----
 
 === From source

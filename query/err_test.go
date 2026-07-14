@@ -3,7 +3,7 @@ package query
 import (
 	"testing"
 
-	"github.com/redis-developer/redis-vl-golang/filter"
+	"github.com/redis/redis-vl-golang/filter"
 )
 
 func TestDeferredDtypeError(t *testing.T) {

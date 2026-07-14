@@ -11,12 +11,12 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
-	"github.com/redis-developer/redis-vl-golang/extensions/cache"
-	"github.com/redis-developer/redis-vl-golang/extensions/history"
-	"github.com/redis-developer/redis-vl-golang/extensions/router"
-	"github.com/redis-developer/redis-vl-golang/extensions/vectorize"
-	"github.com/redis-developer/redis-vl-golang/internal/redistest"
-	"github.com/redis-developer/redis-vl-golang/vectors"
+	"github.com/redis/redis-vl-golang/extensions/cache"
+	"github.com/redis/redis-vl-golang/extensions/history"
+	"github.com/redis/redis-vl-golang/extensions/router"
+	"github.com/redis/redis-vl-golang/extensions/vectorize"
+	"github.com/redis/redis-vl-golang/internal/redistest"
+	"github.com/redis/redis-vl-golang/vectors"
 )
 
 // fakeVectorizer produces deterministic one-hot 8-dim embeddings keyed on

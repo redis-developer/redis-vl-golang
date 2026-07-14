@@ -9,7 +9,7 @@ All rerankers implement `rerank.Reranker`:
 
 [source,go]
 ----
-import "github.com/redis-developer/redis-vl-golang/extensions/rerank"
+import "github.com/redis/redis-vl-golang/extensions/rerank"
 
 type Reranker interface {
     // Rank returns documents sorted by descending relevance.
@@ -66,7 +66,7 @@ NOTE: Unlike Cohere, VoyageAI has no default model — `Model` must be set expli
 
 [source,go]
 ----
-import "github.com/redis-developer/redis-vl-golang/extensions/vectorize/hf"
+import "github.com/redis/redis-vl-golang/extensions/vectorize/hf"
 
 // cross-encoder/ms-marco-MiniLM-L-6-v2 by default
 ce, err := hf.NewCrossEncoder(ctx, hf.CrossEncoderConfig{Limit: 3})
@@ -121,8 +121,8 @@ The standard pattern: over-fetch candidates with a fast vector query, then let t
 [source,go]
 ----
 import (
-    "github.com/redis-developer/redis-vl-golang/query"
-    "github.com/redis-developer/redis-vl-golang/extensions/rerank"
+    "github.com/redis/redis-vl-golang/query"
+    "github.com/redis/redis-vl-golang/extensions/rerank"
 )
 
 // 1. Retrieve a generous candidate set with vector search

@@ -57,5 +57,5 @@ release:
     Download the archive for your platform above, or:
 
     ```
-    go install github.com/redis-developer/redis-vl-golang/cmd/rvl@{{ .Tag }}
+    go install github.com/redis/redis-vl-golang/cmd/rvl@{{ .Tag }}
     ```

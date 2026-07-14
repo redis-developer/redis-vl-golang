@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/redis-developer/redis-vl-golang/vectors"
+	"github.com/redis/redis-vl-golang/vectors"
 )
 
 // httpDoer posts JSON with retries — the Go equivalent of the tenacity

@@ -13,7 +13,7 @@ asciidoc:
     url-redisvl-golang: https://github.com/redis/redis-vl-golang
     url-redisvl-python: https://github.com/redis/redis-vl-python
     url-redisvl-java: https://github.com/redis/redis-vl-java
-    url-pkg-go-dev: https://pkg.go.dev/github.com/redis-developer/redis-vl-golang
+    url-pkg-go-dev: https://pkg.go.dev/github.com/redis/redis-vl-golang
     url-redis: https://redis.io/docs/latest/get-started/
     url-redis-search: https://redis.io/docs/latest/develop/interact/search-and-query/
     url-redis-json: https://redis.io/docs/latest/develop/data-types/json/

@@ -9,7 +9,7 @@ Both history types work with the same `Message` struct:
 
 [source,go]
 ----
-import "github.com/redis-developer/redis-vl-golang/extensions/history"
+import "github.com/redis/redis-vl-golang/extensions/history"
 
 msg := history.Message{
     Role:     "user",              // required
@@ -97,7 +97,7 @@ NOTE: A `vectorize.Vectorizer` is required — the Go port has no default local 
 
 [source,go]
 ----
-import "github.com/redis-developer/redis-vl-golang/extensions/history"
+import "github.com/redis/redis-vl-golang/extensions/history"
 
 h, err := history.NewSemanticMessageHistory(ctx, client, "my-session", vectorizer,
     history.SemanticMessageHistoryOptions{

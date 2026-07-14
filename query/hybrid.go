@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/redis-developer/redis-vl-golang/filter"
-	"github.com/redis-developer/redis-vl-golang/vectors"
+	"github.com/redis/redis-vl-golang/filter"
+	"github.com/redis/redis-vl-golang/vectors"
 )
 
 // VectorSearchMethod selects the vector arm of an FT.HYBRID query.

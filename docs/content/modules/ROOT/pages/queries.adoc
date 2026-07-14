@@ -25,7 +25,7 @@ All examples assume an `index` created as shown in xref:getting-started.adoc[Get
 
 [source,go]
 ----
-import "github.com/redis-developer/redis-vl-golang/query"
+import "github.com/redis/redis-vl-golang/query"
 
 q := query.NewVectorQuery("embedding", vec).
     NumResults(5).                                  // top-k (default 10)
@@ -69,7 +69,7 @@ results, err := index.Query(ctx, q)
 
 [source,go]
 ----
-import "github.com/redis-developer/redis-vl-golang/filter"
+import "github.com/redis/redis-vl-golang/filter"
 
 q := query.NewFilterQuery(filter.Tag("genre").Eq("comedy")).
     ReturnFields("title", "rating").

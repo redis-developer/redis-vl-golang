@@ -3,8 +3,8 @@ package cache
 import (
 	"context"
 
-	"github.com/redis-developer/redis-vl-golang/extensions/vectorize"
-	"github.com/redis-developer/redis-vl-golang/vectors"
+	"github.com/redis/redis-vl-golang/extensions/vectorize"
+	"github.com/redis/redis-vl-golang/vectors"
 )
 
 // CachedVectorizer wraps a Vectorizer with an EmbeddingsCache so repeated

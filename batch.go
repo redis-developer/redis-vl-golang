@@ -7,8 +7,8 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
-	"github.com/redis-developer/redis-vl-golang/query"
-	"github.com/redis-developer/redis-vl-golang/schema"
+	"github.com/redis/redis-vl-golang/query"
+	"github.com/redis/redis-vl-golang/schema"
 )
 
 // defaultBatchSize matches the Python batch_search default.

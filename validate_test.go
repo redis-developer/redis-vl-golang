@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/redis-developer/redis-vl-golang/schema"
-	"github.com/redis-developer/redis-vl-golang/vectors"
+	"github.com/redis/redis-vl-golang/schema"
+	"github.com/redis/redis-vl-golang/vectors"
 )
 
 func validationIndex(t *testing.T, storage schema.StorageType) *SearchIndex {

@@ -3,7 +3,7 @@ package redisvl
 import (
 	"testing"
 
-	"github.com/redis-developer/redis-vl-golang/query"
+	"github.com/redis/redis-vl-golang/query"
 )
 
 func TestParseSearchReplyRESP2(t *testing.T) {

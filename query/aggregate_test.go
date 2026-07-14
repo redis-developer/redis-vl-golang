@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/redis-developer/redis-vl-golang/filter"
-	"github.com/redis-developer/redis-vl-golang/vectors"
+	"github.com/redis/redis-vl-golang/filter"
+	"github.com/redis/redis-vl-golang/vectors"
 )
 
 func TestAggregateHybridQueryString(t *testing.T) {

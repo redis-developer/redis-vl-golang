@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/redis-developer/redis-vl-golang/filter"
-	"github.com/redis-developer/redis-vl-golang/vectors"
+	"github.com/redis/redis-vl-golang/filter"
+	"github.com/redis/redis-vl-golang/vectors"
 )
 
 // AggregationQuery is any query executed via FT.AGGREGATE

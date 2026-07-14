@@ -12,9 +12,9 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/redis/go-redis/v9"
 
-	redisvl "github.com/redis-developer/redis-vl-golang"
-	"github.com/redis-developer/redis-vl-golang/extensions/vectorize"
-	"github.com/redis-developer/redis-vl-golang/vectors"
+	redisvl "github.com/redis/redis-vl-golang"
+	"github.com/redis/redis-vl-golang/extensions/vectorize"
+	"github.com/redis/redis-vl-golang/vectors"
 )
 
 // Server exposes one existing Redis search index to MCP clients.

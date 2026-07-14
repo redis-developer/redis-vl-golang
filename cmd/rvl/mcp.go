@@ -8,7 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/redis-developer/redis-vl-golang/mcpserver"
+	"github.com/redis/redis-vl-golang/mcpserver"
 )
 
 var loopbackHosts = map[string]bool{

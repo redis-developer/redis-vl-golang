@@ -5,8 +5,8 @@ The complete Go API reference for RedisVL is published on pkg.go.dev, generated 
 
 == Reference documentation
 
-* {url-pkg-go-dev}[Core module on pkg.go.dev^] — `github.com/redis-developer/redis-vl-golang`
-* https://pkg.go.dev/github.com/redis-developer/redis-vl-golang/extensions/vectorize/hf[hf module on pkg.go.dev^] — local embeddings and cross-encoders via ONNX Runtime (a separate Go module because it uses cgo)
+* {url-pkg-go-dev}[Core module on pkg.go.dev^] — `github.com/redis/redis-vl-golang`
+* https://pkg.go.dev/github.com/redis/redis-vl-golang/extensions/vectorize/hf[hf module on pkg.go.dev^] — local embeddings and cross-encoders via ONNX Runtime (a separate Go module because it uses cgo)
 
 == Packages
 
@@ -32,7 +32,7 @@ The complete Go API reference for RedisVL is published on pkg.go.dev, generated 
 |{url-pkg-go-dev}/extensions/vectorize[extensions/vectorize^]
 |Embedding providers: OpenAI, Azure OpenAI, Cohere, Mistral, VoyageAI, Ollama, and the `Func` adapter for custom embedding functions.
 
-|https://pkg.go.dev/github.com/redis-developer/redis-vl-golang/extensions/vectorize/hf[extensions/vectorize/hf^]
+|https://pkg.go.dev/github.com/redis/redis-vl-golang/extensions/vectorize/hf[extensions/vectorize/hf^]
 |Local, in-process sentence-transformer embeddings and cross-encoder reranking via ONNX Runtime (separate module).
 
 |{url-pkg-go-dev}/extensions/cache[extensions/cache^]
@@ -57,7 +57,7 @@ RedisVL for Golang follows Go module conventions: releases are git tags (`v{redi
 
 [source,shell,subs="attributes+"]
 ----
-go get github.com/redis-developer/redis-vl-golang@v{redisvl-version}
+go get github.com/redis/redis-vl-golang@v{redisvl-version}
 ----
 
 The `hf` module is tagged and versioned alongside the core module but must be required separately.
@@ -67,7 +67,7 @@ The `hf` module is tagged and versioned alongside the core module but must be re
 Reference content comes straight from the source doc comments, so it is always in sync with the code:
 
 * Hovering over any RedisVL symbol in a Go-aware IDE (gopls) shows the same documentation.
-* `go doc` works offline from your module cache, for example `go doc github.com/redis-developer/redis-vl-golang/extensions/cache.SemanticCache`.
+* `go doc` works offline from your module cache, for example `go doc github.com/redis/redis-vl-golang/extensions/cache.SemanticCache`.
 * Runnable examples on pkg.go.dev come from `Example*` functions in the test files.
 
 TIP: On pkg.go.dev, use the version switcher at the top of the page to match the documentation to the module version in your `go.mod`.

@@ -37,7 +37,7 @@ The hosted HTTP providers share common behavior:
 
 [source,go]
 ----
-import "github.com/redis-developer/redis-vl-golang/extensions/vectorize"
+import "github.com/redis/redis-vl-golang/extensions/vectorize"
 
 // APIKey defaults to OPENAI_API_KEY
 oai, err := vectorize.NewOpenAIVectorizer(ctx, vectorize.OpenAIConfig{
@@ -139,7 +139,7 @@ The `hf` package runs Hugging Face sentence-transformer models *in-process* thro
 
 [source,shell,subs="attributes+"]
 ----
-go get github.com/redis-developer/redis-vl-golang/extensions/vectorize/hf@v{redisvl-version}
+go get github.com/redis/redis-vl-golang/extensions/vectorize/hf@v{redisvl-version}
 ----
 
 It requires the https://onnxruntime.ai/docs/install/[onnxruntime shared library^] to be installed. Point the `ONNXRUNTIME_LIB_PATH` environment variable (or `Config.ONNXRuntimePath`) at `libonnxruntime.so` / `.dylib` / `onnxruntime.dll`; otherwise the platform's dynamic linker resolves the default library name.
@@ -148,7 +148,7 @@ It requires the https://onnxruntime.ai/docs/install/[onnxruntime shared library^
 
 [source,go]
 ----
-import "github.com/redis-developer/redis-vl-golang/extensions/vectorize/hf"
+import "github.com/redis/redis-vl-golang/extensions/vectorize/hf"
 
 vec, err := hf.New(ctx, hf.Config{
     Model: "sentence-transformers/all-MiniLM-L6-v2",

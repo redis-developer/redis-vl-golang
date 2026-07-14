@@ -7,11 +7,11 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	redisvl "github.com/redis-developer/redis-vl-golang"
-	"github.com/redis-developer/redis-vl-golang/filter"
-	"github.com/redis-developer/redis-vl-golang/query"
-	"github.com/redis-developer/redis-vl-golang/schema"
-	"github.com/redis-developer/redis-vl-golang/vectors"
+	redisvl "github.com/redis/redis-vl-golang"
+	"github.com/redis/redis-vl-golang/filter"
+	"github.com/redis/redis-vl-golang/query"
+	"github.com/redis/redis-vl-golang/schema"
+	"github.com/redis/redis-vl-golang/vectors"
 )
 
 // SearchArgs are the arguments of the search-records tool (mirrors the

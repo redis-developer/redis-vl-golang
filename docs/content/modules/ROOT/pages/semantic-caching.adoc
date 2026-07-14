@@ -14,8 +14,8 @@ NOTE: Unlike the Python library, the Go port has no default local embedding mode
 import (
     "time"
 
-    "github.com/redis-developer/redis-vl-golang/extensions/cache"
-    "github.com/redis-developer/redis-vl-golang/extensions/vectorize"
+    "github.com/redis/redis-vl-golang/extensions/cache"
+    "github.com/redis/redis-vl-golang/extensions/vectorize"
 )
 
 vectorizer, err := vectorize.NewOpenAIVectorizer(ctx, vectorize.OpenAIConfig{
@@ -89,7 +89,7 @@ key, err := llmcache.Store(ctx, prompt, response, cache.StoreOptions{
 
 [source,go]
 ----
-import "github.com/redis-developer/redis-vl-golang/filter"
+import "github.com/redis/redis-vl-golang/filter"
 
 hits, err := llmcache.Check(ctx, prompt, cache.CheckOptions{
     NumResults:        3,                              // default 1

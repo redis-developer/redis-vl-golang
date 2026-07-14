@@ -129,14 +129,14 @@ Add RedisVL to your project:
 
 [source,shell,subs="attributes+"]
 ----
-go get github.com/redis-developer/redis-vl-golang@v{redisvl-version}
+go get github.com/redis/redis-vl-golang@v{redisvl-version}
 ----
 
 For local embedding models (a separate module because it uses ONNX Runtime via cgo):
 
 [source,shell,subs="attributes+"]
 ----
-go get github.com/redis-developer/redis-vl-golang/extensions/vectorize/hf@v{redisvl-version}
+go get github.com/redis/redis-vl-golang/extensions/vectorize/hf@v{redisvl-version}
 ----
 
 == Quick Example
@@ -149,10 +149,10 @@ import (
     "context"
     "fmt"
 
-    redisvl "github.com/redis-developer/redis-vl-golang"
-    "github.com/redis-developer/redis-vl-golang/filter"
-    "github.com/redis-developer/redis-vl-golang/query"
-    "github.com/redis-developer/redis-vl-golang/schema"
+    redisvl "github.com/redis/redis-vl-golang"
+    "github.com/redis/redis-vl-golang/filter"
+    "github.com/redis/redis-vl-golang/query"
+    "github.com/redis/redis-vl-golang/schema"
 )
 
 func main() {

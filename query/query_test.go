@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/redis-developer/redis-vl-golang/filter"
+	"github.com/redis/redis-vl-golang/filter"
 )
 
 func TestVectorQueryString(t *testing.T) {

@@ -15,8 +15,8 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
-	"github.com/redis-developer/redis-vl-golang/extensions/cache"
-	"github.com/redis-developer/redis-vl-golang/extensions/vectorize"
+	"github.com/redis/redis-vl-golang/extensions/cache"
+	"github.com/redis/redis-vl-golang/extensions/vectorize"
 )
 
 func main() {

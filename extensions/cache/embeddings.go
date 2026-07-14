@@ -13,7 +13,7 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
-	redisvl "github.com/redis-developer/redis-vl-golang"
+	redisvl "github.com/redis/redis-vl-golang"
 )
 
 // Field names shared with the Python implementation

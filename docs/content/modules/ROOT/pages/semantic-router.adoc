@@ -9,7 +9,7 @@ A `Route` is a named topic described by reference phrases:
 
 [source,go]
 ----
-import "github.com/redis-developer/redis-vl-golang/extensions/router"
+import "github.com/redis/redis-vl-golang/extensions/router"
 
 routes := []router.Route{
     {

@@ -13,11 +13,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/redis-developer/redis-vl-golang/filter"
-	"github.com/redis-developer/redis-vl-golang/internal/redistest"
-	"github.com/redis-developer/redis-vl-golang/query"
-	"github.com/redis-developer/redis-vl-golang/schema"
-	"github.com/redis-developer/redis-vl-golang/vectors"
+	"github.com/redis/redis-vl-golang/filter"
+	"github.com/redis/redis-vl-golang/internal/redistest"
+	"github.com/redis/redis-vl-golang/query"
+	"github.com/redis/redis-vl-golang/schema"
+	"github.com/redis/redis-vl-golang/vectors"
 )
 
 func testIndex(t *testing.T) (*SearchIndex, context.Context) {

@@ -9,7 +9,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	redisvl "github.com/redis-developer/redis-vl-golang"
+	redisvl "github.com/redis/redis-vl-golang"
 )
 
 // transportTestServer builds a Server with a live MCP core but no Redis

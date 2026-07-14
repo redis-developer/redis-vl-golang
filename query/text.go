@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/redis-developer/redis-vl-golang/filter"
+	"github.com/redis/redis-vl-golang/filter"
 )
 
 // TextQuery runs a full-text search with an optional filter expression

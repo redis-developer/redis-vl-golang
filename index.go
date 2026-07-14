@@ -14,8 +14,8 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
-	"github.com/redis-developer/redis-vl-golang/query"
-	"github.com/redis-developer/redis-vl-golang/schema"
+	"github.com/redis/redis-vl-golang/query"
+	"github.com/redis/redis-vl-golang/schema"
 )
 
 // SearchIndex manages a Redis search index defined by an IndexSchema.

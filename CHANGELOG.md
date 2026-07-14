@@ -9,8 +9,20 @@ Release tags cover both Go modules in this repository: the core module
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-07-14
+
 ### Changed
 
+- **Breaking:** the module path is now `github.com/redis/redis-vl-golang`
+  (and `github.com/redis/redis-vl-golang/extensions/vectorize/hf` for the
+  local ML module), following the repository's move to the redis GitHub
+  organization. To upgrade, replace `redis-developer` with `redis` in your
+  imports and go.mod requirements. All v0.1.x versions remain available
+  under the old path indefinitely.
+- Repository links and the documentation site moved to
+  `github.com/redis/redis-vl-golang` and
+  `redis.github.io/redis-vl-golang` (the old GitHub Pages URL does not
+  redirect)
 - Benchmarks now start their own throwaway Redis testcontainer per run
   (pinned `redis:8.8.0`, `REDIS_IMAGE` override) instead of requiring an
   external instance, so neither language benefits from a warmed-up
@@ -85,7 +97,8 @@ The first release of RedisVL for Golang, ported from
 - Go-vs-Python benchmark harness (`benchmarks/`)
 - Antora documentation site published to GitHub Pages
 
-[Unreleased]: https://github.com/redis/redis-vl-golang/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/redis/redis-vl-golang/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/redis/redis-vl-golang/compare/v0.1.2...v0.2.0
 [0.1.2]: https://github.com/redis/redis-vl-golang/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/redis/redis-vl-golang/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/redis/redis-vl-golang/releases/tag/v0.1.0

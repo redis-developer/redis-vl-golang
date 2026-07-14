@@ -4,7 +4,7 @@ contact_links:
     url: https://redis.github.io/redis-vl-golang/redisvl/current/index.html
     about: User guides for every feature of the library
   - name: API Reference
-    url: https://pkg.go.dev/github.com/redis-developer/redis-vl-golang
+    url: https://pkg.go.dev/github.com/redis/redis-vl-golang
     about: Generated API documentation on pkg.go.dev
   - name: Redis Discord
     url: https://discord.gg/redis

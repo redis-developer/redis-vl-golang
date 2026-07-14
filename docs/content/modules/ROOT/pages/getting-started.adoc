@@ -14,7 +14,7 @@ Install RedisVL into your Go module:
 
 [source,shell,subs="attributes+"]
 ----
-go get github.com/redis-developer/redis-vl-golang@v{redisvl-version}
+go get github.com/redis/redis-vl-golang@v{redisvl-version}
 ----
 
 The quickest way to run Redis locally is Docker:
@@ -34,7 +34,7 @@ A schema describes the index: its name, key prefix, storage type (hash or JSON),
 
 [source,go]
 ----
-import "github.com/redis-developer/redis-vl-golang/schema"
+import "github.com/redis/redis-vl-golang/schema"
 
 embedding, err := schema.NewVectorField("embedding", schema.VectorAttrs{
     Algorithm:      schema.Flat, // or schema.HNSW, schema.SVSVamana
@@ -109,7 +109,7 @@ s, err := schema.FromYAMLFile("schemas/schema.yaml")
 
 [source,go]
 ----
-import redisvl "github.com/redis-developer/redis-vl-golang"
+import redisvl "github.com/redis/redis-vl-golang"
 
 index, err := redisvl.NewSearchIndexFromURL(s, "redis://localhost:6379")
 if err != nil {
@@ -145,7 +145,7 @@ Documents are plain `[]map[string]any`. For hash storage, vector values must be 
 
 [source,go]
 ----
-import "github.com/redis-developer/redis-vl-golang/vectors"
+import "github.com/redis/redis-vl-golang/vectors"
 
 emb1, _ := vectors.ToBuffer([]float64{0.1, 0.1, 0.5, 0.9}, vectors.Float32)
 emb2, _ := vectors.ToBuffer([]float64{0.7, 0.1, 0.5, 0.3}, vectors.Float32)
@@ -192,7 +192,7 @@ NOTE: For {url-redis-json}[JSON storage^], vectors are stored as plain float sli
 
 [source,go]
 ----
-import "github.com/redis-developer/redis-vl-golang/query"
+import "github.com/redis/redis-vl-golang/query"
 
 q := query.NewVectorQuery("embedding", []float64{0.1, 0.1, 0.5, 0.1}).
     NumResults(3).

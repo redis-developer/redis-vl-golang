@@ -27,8 +27,8 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
-	redisvl "github.com/redis-developer/redis-vl-golang"
-	"github.com/redis-developer/redis-vl-golang/schema"
+	redisvl "github.com/redis/redis-vl-golang"
+	"github.com/redis/redis-vl-golang/schema"
 )
 
 func main() {

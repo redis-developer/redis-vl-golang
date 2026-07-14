@@ -1,4 +1,4 @@
-module github.com/redis-developer/redis-vl-golang
+module github.com/redis/redis-vl-golang
 
 go 1.25.0
 
