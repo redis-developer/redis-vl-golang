@@ -12,7 +12,7 @@ Please **do not** report security vulnerabilities through public GitHub
 issues.
 
 Report them privately via
-[GitHub Security Advisories](https://github.com/redis-developer/redis-vl-golang/security/advisories/new)
+[GitHub Security Advisories](https://github.com/redis/redis-vl-golang/security/advisories/new)
 ("Report a vulnerability" on the repository's Security tab). You should
 receive a response within a few business days.
 

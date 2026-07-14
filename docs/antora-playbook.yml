@@ -1,6 +1,6 @@
 site:
   title: RedisVL Documentation
-  url: https://redis-developer.github.io/redis-vl-golang
+  url: https://redis.github.io/redis-vl-golang
   start_page: redisvl::index.adoc
 
 content:

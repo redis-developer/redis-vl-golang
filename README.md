@@ -7,7 +7,7 @@
 <div align="center">
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/redis-developer/redis-vl-golang.svg)](https://pkg.go.dev/github.com/redis-developer/redis-vl-golang)
-[![CI](https://github.com/redis-developer/redis-vl-golang/actions/workflows/ci.yml/badge.svg)](https://github.com/redis-developer/redis-vl-golang/actions/workflows/ci.yml)
+[![CI](https://github.com/redis/redis-vl-golang/actions/workflows/ci.yml/badge.svg)](https://github.com/redis/redis-vl-golang/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![Language](https://img.shields.io/badge/go-%3E%3D1.25-00ADD8?logo=go)
 
@@ -491,11 +491,11 @@ Create, destroy, and manage Redis index configurations from a purpose-built CLI 
 
 ### Installing rvl
 
-**Prebuilt binaries (no Go required).** Every [release](https://github.com/redis-developer/redis-vl-golang/releases) ships archives for macOS, Linux, and Windows on amd64 and arm64, named `rvl_<version>_<os>_<arch>`. For example, on macOS (Apple Silicon):
+**Prebuilt binaries (no Go required).** Every [release](https://github.com/redis/redis-vl-golang/releases) ships archives for macOS, Linux, and Windows on amd64 and arm64, named `rvl_<version>_<os>_<arch>`. For example, on macOS (Apple Silicon):
 
 ```bash
 VERSION=0.1.1
-curl -sSfLO "https://github.com/redis-developer/redis-vl-golang/releases/download/v${VERSION}/rvl_${VERSION}_darwin_arm64.tar.gz"
+curl -sSfLO "https://github.com/redis/redis-vl-golang/releases/download/v${VERSION}/rvl_${VERSION}_darwin_arm64.tar.gz"
 tar -xzf "rvl_${VERSION}_darwin_arm64.tar.gz" rvl
 sudo mv rvl /usr/local/bin/
 rvl version
@@ -504,7 +504,7 @@ rvl version
 On Linux, substitute `linux_amd64` (or `linux_arm64`); on Intel Macs, `darwin_amd64`. Windows users download the `.zip` and place `rvl.exe` on their `PATH`. Each release includes a `checksums.txt` to verify downloads:
 
 ```bash
-curl -sSfLO "https://github.com/redis-developer/redis-vl-golang/releases/download/v${VERSION}/checksums.txt"
+curl -sSfLO "https://github.com/redis/redis-vl-golang/releases/download/v${VERSION}/checksums.txt"
 shasum -a 256 -c checksums.txt --ignore-missing
 ```
 

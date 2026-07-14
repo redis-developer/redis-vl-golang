@@ -231,7 +231,7 @@ When filing a bug report, please include:
 
 Before suggesting a new feature:
 
-1. **Check existing issues**: Search our [issue list](https://github.com/redis-developer/redis-vl-golang/issues) to see if someone has already proposed it
+1. **Check existing issues**: Search our [issue list](https://github.com/redis/redis-vl-golang/issues) to see if someone has already proposed it
 2. **Consider the scope**: Ensure the feature aligns with RedisVL's goals
 3. **Provide details**: If you don't see anything similar, open a new issue that describes:
    - The feature you would like

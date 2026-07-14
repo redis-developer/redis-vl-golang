@@ -85,7 +85,7 @@ The first release of RedisVL for Golang, ported from
 - Go-vs-Python benchmark harness (`benchmarks/`)
 - Antora documentation site published to GitHub Pages
 
-[Unreleased]: https://github.com/redis-developer/redis-vl-golang/compare/v0.1.2...HEAD
-[0.1.2]: https://github.com/redis-developer/redis-vl-golang/compare/v0.1.1...v0.1.2
-[0.1.1]: https://github.com/redis-developer/redis-vl-golang/compare/v0.1.0...v0.1.1
-[0.1.0]: https://github.com/redis-developer/redis-vl-golang/releases/tag/v0.1.0
+[Unreleased]: https://github.com/redis/redis-vl-golang/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/redis/redis-vl-golang/compare/v0.1.1...v0.1.2
+[0.1.1]: https://github.com/redis/redis-vl-golang/compare/v0.1.0...v0.1.1
+[0.1.0]: https://github.com/redis/redis-vl-golang/releases/tag/v0.1.0

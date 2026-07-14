@@ -2,7 +2,7 @@
 
 This folder is an [Antora](https://antora.org) project that builds the
 documentation site published at
-https://redis-developer.github.io/redis-vl-golang/ — the same stack and
+https://redis.github.io/redis-vl-golang/ — the same stack and
 branding as the [redis-vl-java docs](https://redis.github.io/redis-vl-java/).
 
 ## Layout
