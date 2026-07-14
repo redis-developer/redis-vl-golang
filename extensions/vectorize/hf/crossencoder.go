@@ -9,7 +9,7 @@ import (
 
 	"github.com/sugarme/tokenizer"
 
-	"github.com/redis-developer/redis-vl-golang/extensions/rerank"
+	"github.com/redis/redis-vl-golang/extensions/rerank"
 )
 
 // DefaultCrossEncoderModel matches Python HFCrossEncoderReranker's default.

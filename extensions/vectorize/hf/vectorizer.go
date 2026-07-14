@@ -7,8 +7,8 @@ import (
 
 	"github.com/sugarme/tokenizer"
 
-	"github.com/redis-developer/redis-vl-golang/extensions/vectorize"
-	"github.com/redis-developer/redis-vl-golang/vectors"
+	"github.com/redis/redis-vl-golang/extensions/vectorize"
+	"github.com/redis/redis-vl-golang/vectors"
 )
 
 // DefaultModel matches Python HFTextVectorizer's default model.

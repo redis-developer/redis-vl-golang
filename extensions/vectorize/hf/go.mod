@@ -1,4 +1,4 @@
-module github.com/redis-developer/redis-vl-golang/extensions/vectorize/hf
+module github.com/redis/redis-vl-golang/extensions/vectorize/hf
 
 go 1.25.0
 
@@ -8,7 +8,7 @@ go 1.25.0
 //
 //	make work    # go work init . ./extensions/vectorize/hf
 require (
-	github.com/redis-developer/redis-vl-golang v0.1.2
+	github.com/redis/redis-vl-golang v0.2.0
 	github.com/sugarme/tokenizer v0.3.1-0.20251127070628-8dac234bfe56
 	github.com/yalue/onnxruntime_go v1.31.0
 )
